@@ -1,0 +1,17 @@
+[project]
+name = "msrromol"
+version = "0.1.0"
+description = "Misr Romol — Egyptian Textile Import Business Telegram Bot"
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram>=3.7.0",
+    "supabase>=2.4.6",
+    "python-dotenv>=1.0.1",
+    "aiohttp>=3.9.5",
+]
+
+[dependency-groups]
+dev = []
+
+[tool.uv]
+package = false
