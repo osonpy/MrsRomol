@@ -1,0 +1,103 @@
+{
+  "common": {
+    "loading": "Yuklanmoqda...",
+    "error": "Xatolik yuz berdi",
+    "retry": "Qaytadan",
+    "back": "Orqaga",
+    "cancel": "Bekor qilish",
+    "save": "Saqlash",
+    "saving": "Saqlanmoqda...",
+    "saved": "Saqlandi ✓"
+  },
+  "nav": {
+    "catalog": "Katalog",
+    "cart": "Savat",
+    "orders": "Buyurtmalar",
+    "profile": "Profil"
+  },
+  "catalog": {
+    "title": "Mahsulotlar",
+    "search": "Qidirish...",
+    "empty": "Mahsulotlar topilmadi",
+    "all_categories": "Barchasi"
+  },
+  "product": {
+    "add_to_cart": "Savatga qo'shish",
+    "out_of_stock": "Tugagan",
+    "low_stock": "Kam qoldi",
+    "in_stock": "Mavjud",
+    "quantity": "Miqdor",
+    "description": "Tavsif",
+    "category": "Kategoriya",
+    "color": "Rang",
+    "added": "Savatga qo'shildi ✓",
+    "price": "Narx",
+    "stock_qty": "{{qty}} dona qoldi"
+  },
+  "cart": {
+    "title": "Savat",
+    "empty": "Savat bo'sh",
+    "empty_hint": "Katalogdan mahsulot tanlang",
+    "pickup": "O'zim olaman",
+    "delivery": "Yetkazib berish",
+    "address": "Yetkazib berish manzili",
+    "address_placeholder": "Shahar, ko'cha, uy raqami...",
+    "notes": "Eslatma (ixtiyoriy)",
+    "notes_placeholder": "Qo'shimcha ma'lumot...",
+    "total": "Jami",
+    "order": "Buyurtma berish",
+    "confirm": "Tasdiqlash",
+    "ordering": "Joʻnatilmoqda...",
+    "address_required": "Manzilni kiriting",
+    "error": "Xatolik yuz berdi. Qaytadan urinib ko'ring.",
+    "stock_error": "Mahsulot tugagan. Sahifani yangilang.",
+    "go_to_catalog": "Katalogga o'tish"
+  },
+  "orders": {
+    "title": "Buyurtmalar",
+    "empty": "Hali buyurtmalar yo'q",
+    "empty_hint": "Birinchi buyurtmangizni bering!",
+    "send_receipt": "Chek yuborish",
+    "order_num": "#{{id}}",
+    "items_count": "{{n}} mahsulot",
+    "status": {
+      "pending": "Kutilmoqda",
+      "confirmed": "Tasdiqlangan",
+      "shipped": "Yo'lda",
+      "delivered": "Yetkazildi",
+      "cancelled": "Bekor qilindi"
+    },
+    "payment_status": {
+      "pending_verification": "To'lov kutilmoqda",
+      "confirmed": "To'lov tasdiqlandi",
+      "rejected": "To'lov rad etildi"
+    }
+  },
+  "payment": {
+    "title": "To'lov cheki",
+    "amount": "To'lov summasi",
+    "method": "To'lov usuli",
+    "receipt": "Chek rasmi",
+    "submit": "To'lovni yuborish",
+    "methods": {
+      "card": "Bank kartasi",
+      "click": "Click",
+      "payme": "Payme",
+      "cash": "Naqd pul"
+    },
+    "sent": "To'lov yuborildi! ✓",
+    "error": "To'lovni yuborishda xatolik",
+    "amount_required": "Summani kiriting",
+    "receipt_required": "Chek rasmini yuklang"
+  },
+  "profile": {
+    "title": "Profil",
+    "phone": "Telefon raqam",
+    "phone_placeholder": "+998 90 123 45 67",
+    "language": "Til",
+    "orders": "Buyurtmalar",
+    "spent": "Jami xarid",
+    "contact": "Biz bilan bog'lanish",
+    "name": "Ismingiz"
+  }
+}

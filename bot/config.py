@@ -22,6 +22,7 @@ def _require(key: str) -> str:
 # ── Telegram ────────────────────────────────────────────────────────────────
 BOT_TOKEN: str = _require("BOT_TOKEN")
 ADMIN_GROUP_ID: int = int(_require("ADMIN_GROUP_ID"))
+MINI_APP_URL: str = os.getenv("MINI_APP_URL", "http://localhost:5173")
 
 # ADMIN_USER_IDS: comma-separated personal Telegram user IDs that can use
 # admin commands (/setphotos, /pending). Example: "123456789,987654321"

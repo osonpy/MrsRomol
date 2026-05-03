@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Telegram Theme Variables (fallback for browser testing) ──────────────── */
+:root {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #222222;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2563eb;
+  --tg-theme-button-color: #2563eb;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f3f4f6;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--tg-theme-bg-color);
+  color: var(--tg-theme-text-color);
+  min-height: 100dvh;
+  margin: 0;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--tg-theme-hint-color); border-radius: 2px; }
+
+/* ── Custom utility classes ───────────────────────────────────────────────── */
+@layer components {
+  .tg-card {
+    @apply rounded-2xl p-4;
+    background: var(--tg-theme-secondary-bg-color);
+  }
+
+  .tg-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold text-sm transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+  }
+
+  .tg-btn-ghost {
+    @apply tg-btn;
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+  }
+
+  .tg-btn-danger {
+    @apply tg-btn;
+    background: #ef4444;
+    color: #ffffff;
+  }
+
+  .tg-input {
+    @apply w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200;
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    border: 1.5px solid transparent;
+  }
+
+  .tg-input:focus {
+    border-color: var(--tg-theme-button-color);
+  }
+
+  .tg-input::placeholder {
+    color: var(--tg-theme-hint-color);
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-all duration-200;
+  }
+
+  .chip-active {
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+  }
+
+  .chip-inactive {
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-hint-color);
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    @apply rounded-xl animate-pulse;
+    background: linear-gradient(
+      90deg,
+      var(--tg-theme-secondary-bg-color) 25%,
+      color-mix(in srgb, var(--tg-theme-secondary-bg-color) 70%, var(--tg-theme-hint-color)) 50%,
+      var(--tg-theme-secondary-bg-color) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Badge variants */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-green  { @apply badge bg-green-100 text-green-700; }
+  .badge-yellow { @apply badge bg-yellow-100 text-yellow-700; }
+  .badge-red    { @apply badge bg-red-100 text-red-700; }
+  .badge-blue   { @apply badge bg-blue-100 text-blue-700; }
+  .badge-gray   { @apply badge bg-gray-100 text-gray-500; }
+  .badge-purple { @apply badge bg-purple-100 text-purple-700; }
+
+  /* Page transitions */
+  .page-enter {
+    animation: pageEnter 0.25s ease-out;
+  }
+
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
