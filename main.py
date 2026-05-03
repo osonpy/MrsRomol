@@ -17,7 +17,8 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.config import BOT_TOKEN
-from bot.handlers import start, catalog, orders, payments, my_orders, admin
+from bot.handlers import start, admin
+# catalog, orders, payments, my_orders — removed (handled by Mini App + FastAPI)
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -66,13 +67,10 @@ async def main() -> None:
     dp = Dispatcher(storage=MemoryStorage())
 
     # ── Register routers — ORDER MATTERS ──────────────────────────────────────
-    # More specific routers first; fallback router last.
-    dp.include_router(start.router)       # /start, /settings, language callbacks
-    dp.include_router(admin.router)        # admin order/payment actions + /setphotos
-    dp.include_router(catalog.router)     # catalog browsing + product detail
-    dp.include_router(orders.router)      # order creation FSM
-    dp.include_router(payments.router)    # receipt photo upload
-    dp.include_router(my_orders.router)   # order history + contact
+    # Bot is now NOTIFICATION LAYER ONLY.
+    # catalog / orders / payments / my_orders → handled by Mini App + FastAPI
+    dp.include_router(start.router)       # /start, /settings, Mini App button
+    dp.include_router(admin.router)       # admin order/payment action callbacks + /setphotos
     dp.include_router(_fallback_router)   # catch-all — must be LAST
 
     logger.info("🤖 Misr Romol Bot starting...")

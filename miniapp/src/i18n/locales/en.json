@@ -1,0 +1,103 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved ✓"
+  },
+  "nav": {
+    "catalog": "Catalog",
+    "cart": "Cart",
+    "orders": "Orders",
+    "profile": "Profile"
+  },
+  "catalog": {
+    "title": "Products",
+    "search": "Search...",
+    "empty": "No products found",
+    "all_categories": "All"
+  },
+  "product": {
+    "add_to_cart": "Add to cart",
+    "out_of_stock": "Out of stock",
+    "low_stock": "Low stock",
+    "in_stock": "In stock",
+    "quantity": "Quantity",
+    "description": "Description",
+    "category": "Category",
+    "color": "Color",
+    "added": "Added to cart ✓",
+    "price": "Price",
+    "stock_qty": "{{qty}} left"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty",
+    "empty_hint": "Browse the catalog to add items",
+    "pickup": "Pick up",
+    "delivery": "Delivery",
+    "address": "Delivery address",
+    "address_placeholder": "City, street, building...",
+    "notes": "Notes (optional)",
+    "notes_placeholder": "Additional information...",
+    "total": "Total",
+    "order": "Place order",
+    "confirm": "Confirm",
+    "ordering": "Placing order...",
+    "address_required": "Please enter your address",
+    "error": "Something went wrong. Please try again.",
+    "stock_error": "Item out of stock. Please refresh.",
+    "go_to_catalog": "Go to catalog"
+  },
+  "orders": {
+    "title": "Orders",
+    "empty": "No orders yet",
+    "empty_hint": "Place your first order!",
+    "send_receipt": "Send receipt",
+    "order_num": "#{{id}}",
+    "items_count": "{{n}} item(s)",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "payment_status": {
+      "pending_verification": "Payment pending",
+      "confirmed": "Payment confirmed",
+      "rejected": "Payment rejected"
+    }
+  },
+  "payment": {
+    "title": "Payment receipt",
+    "amount": "Payment amount",
+    "method": "Payment method",
+    "receipt": "Receipt photo",
+    "submit": "Submit payment",
+    "methods": {
+      "card": "Bank card",
+      "click": "Click",
+      "payme": "Payme",
+      "cash": "Cash"
+    },
+    "sent": "Payment sent! ✓",
+    "error": "Failed to submit payment",
+    "amount_required": "Please enter an amount",
+    "receipt_required": "Please upload a receipt photo"
+  },
+  "profile": {
+    "title": "Profile",
+    "phone": "Phone number",
+    "phone_placeholder": "+998 90 123 45 67",
+    "language": "Language",
+    "orders": "Orders",
+    "spent": "Total spent",
+    "contact": "Contact us",
+    "name": "Your name"
+  }
+}
