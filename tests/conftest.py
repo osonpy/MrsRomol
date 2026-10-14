@@ -32,7 +32,7 @@ os.environ.update(
     ADMIN_GROUP_ID="-100500",
     ADMIN_NOTIFY_IDS="-100500,1000",
     SUPER_ADMIN_IDS=str(OWNER),
-    SUPABASE_URL="http://localhost:54329",
+    SUPABASE_URL="http://localhost:54331",
     SUPABASE_KEY=_jwt(os.environ.get("TEST_JWT_SECRET", "x" * 40)),
     MINI_APP_URL="https://app.test",
     ALLOWED_ORIGINS="https://app.test",
@@ -56,7 +56,7 @@ def init_data(user_id: int, first_name: str = "User", lang: str = "uz", age: int
 def sql(query: str) -> str:
     """Run SQL directly in the test database (for things only time would do)."""
     out = subprocess.run(
-        ["docker", "exec", os.environ.get("TEST_DB_CONTAINER", "msr-pg"),
+        ["docker", "exec", os.environ.get("TEST_DB_CONTAINER", "msrt-pg"),
          "psql", "-U", "postgres", "-tAc", query],
         check=True, capture_output=True, text=True,
     )
