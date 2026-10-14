@@ -1,18 +1,19 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Path, UploadFile, File, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Path, UploadFile, File, BackgroundTasks
 
-from api.config import ADMIN_SECRET_KEY
 from api.database import (
     create_payment,
     get_payment_by_id,
+    get_order_payments,
     confirm_payment,
     upload_receipt_to_storage,
+    receipt_url_prefix,
     get_order_by_id,
     get_customer,
 )
 from api.schemas.payment import CreatePaymentRequest, PaymentResponse, ConfirmPaymentResponse
-from api.middleware.auth import TelegramUser
+from api.middleware.auth import AdminKey, TelegramUser
 from api.utils.notify import notify_admin_new_payment, notify_customer_payment_confirmed
 
 logger = logging.getLogger(__name__)
@@ -20,27 +21,23 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic"}
 _MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-
-
-def _admin_only(x_admin_key: str = Header(..., alias="X-Admin-Key")) -> None:
-    if x_admin_key != ADMIN_SECRET_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail={"error": "Admin access required", "code": "FORBIDDEN"},
-        )
+# Orders in these states still accept a payment ("confirmed" = admin saw the order).
+_PAYABLE_ORDER_STATUSES = {"pending", "confirmed"}
+# An order with a payment in one of these states must not get another one.
+_ACTIVE_PAYMENT_STATUSES = {"pending_verification", "verified"}
 
 
 @router.post("/upload-receipt")
 async def upload_receipt(
+    telegram_id: TelegramUser,
     file: UploadFile = File(...),
-    telegram_id: TelegramUser = None,
 ) -> dict:
     if file.content_type not in _ALLOWED_CONTENT_TYPES:
         raise HTTPException(
             status_code=415,
             detail={"error": f"Unsupported file type: {file.content_type}", "code": "VALIDATION_ERROR"},
         )
-    content = await file.read()
+    content = await file.read(_MAX_SIZE + 1)
     if len(content) > _MAX_SIZE:
         raise HTTPException(
             status_code=413,
@@ -48,7 +45,6 @@ async def upload_receipt(
         )
     url = await upload_receipt_to_storage(
         file_bytes=content,
-        filename=file.filename or "receipt.jpg",
         content_type=file.content_type,
     )
     if not url:
@@ -71,10 +67,20 @@ async def create_payment_record(
     if not customer or order.get("customer_id") != customer.get("id"):
         raise HTTPException(status_code=403, detail={"error": "Access denied", "code": "FORBIDDEN"})
 
+    if order.get("status") not in _PAYABLE_ORDER_STATUSES:
+        raise HTTPException(status_code=409, detail={"error": "Order cannot be paid", "code": "CONFLICT"})
+    existing = await get_order_payments(body.order_id)
+    if any(p.get("status") in _ACTIVE_PAYMENT_STATUSES for p in existing):
+        raise HTTPException(status_code=409, detail={"error": "Payment already submitted", "code": "CONFLICT"})
+
+    # Only accept receipts uploaded through /payments/upload-receipt.
+    if body.receipt_file_id and not body.receipt_file_id.startswith(receipt_url_prefix()):
+        raise HTTPException(status_code=400, detail={"error": "Invalid receipt URL", "code": "VALIDATION_ERROR"})
+
     payment = await create_payment(
         order_id=body.order_id,
         method=body.method,
-        amount=body.amount,
+        amount=float(order["total_amount"]),
         receipt_file_id=body.receipt_file_id or "",
     )
     if not payment:
@@ -103,16 +109,15 @@ async def create_payment_record(
     )
 
 
-@router.patch("/{payment_id}/confirm", response_model=ConfirmPaymentResponse)
+@router.patch("/{payment_id}/confirm", response_model=ConfirmPaymentResponse, dependencies=[AdminKey])
 async def confirm_payment_endpoint(
+    background_tasks: BackgroundTasks,
     payment_id: str = Path(...),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
-    _: None = Depends(_admin_only),
 ) -> ConfirmPaymentResponse:
     payment = await get_payment_by_id(payment_id)
     if not payment:
         raise HTTPException(status_code=404, detail={"error": "Payment not found", "code": "NOT_FOUND"})
-    if payment["status"] == "confirmed":
+    if payment["status"] == "verified":
         raise HTTPException(status_code=409, detail={"error": "Payment already confirmed", "code": "CONFLICT"})
 
     updated = await confirm_payment(payment_id)
@@ -134,7 +139,7 @@ async def confirm_payment_endpoint(
 
     return ConfirmPaymentResponse(
         id=payment_id,
-        status="confirmed",
+        status="verified",
         order_id=payment["order_id"],
         message="Payment confirmed and customer notified",
     )

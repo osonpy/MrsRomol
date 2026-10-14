@@ -69,7 +69,7 @@
     },
     "payment_status": {
       "pending_verification": "Ожидает оплаты",
-      "confirmed": "Оплата подтверждена",
+      "verified": "Оплата подтверждена",
       "rejected": "Оплата отклонена"
     }
   },

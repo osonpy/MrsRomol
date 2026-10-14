@@ -4,10 +4,7 @@ No DB calls, no bot logic — only string transformations.
 """
 from __future__ import annotations
 
-import math
 from datetime import datetime
-
-from bot.config import PRODUCTS_PER_PAGE
 
 
 def format_price(amount: float | int) -> str:
@@ -25,13 +22,6 @@ def format_date(dt_str: str) -> str:
         return dt.strftime("%d.%m.%Y %H:%M")
     except Exception:
         return dt_str  # Return raw string if parsing fails
-
-
-def total_pages(total_count: int) -> int:
-    """Calculate total pages given a total item count and the global page size."""
-    if total_count == 0:
-        return 1
-    return math.ceil(total_count / PRODUCTS_PER_PAGE)
 
 
 def format_order_items_for_admin(items: list[dict]) -> str:

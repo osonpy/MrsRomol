@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -168,19 +169,23 @@ async def create_order_with_items(
         enriched: list[dict] = []
         total_amount: float = 0.0
 
+        # Merge duplicate lines so the stock check sees the full quantity.
+        quantities: dict[str, int] = {}
         for item in items:
-            product = await get_product_by_id(item["product_id"])
+            quantities[item["product_id"]] = quantities.get(item["product_id"], 0) + item["quantity"]
+
+        for product_id, qty in quantities.items():
+            product = await get_product_by_id(product_id)
             if not product:
-                return None, f"Product {item['product_id']} not found"
+                return None, f"Product {product_id} not found"
             if not product.get("is_active"):
                 return None, f"Product '{product['name']}' is no longer active"
-            qty = item["quantity"]
             if product["stock_qty"] < qty:
                 return None, f"OUT_OF_STOCK:{product['name']}:{qty}:{product['stock_qty']}"
 
             unit_price = float(product["sell_price"])
             enriched.append({
-                "product_id": item["product_id"],
+                "product_id": product_id,
                 "quantity": qty,
                 "unit_price": unit_price,
                 "product_name": product["name"],
@@ -220,7 +225,7 @@ async def create_order_with_items(
 
     except Exception as e:
         logger.error("create_order_with_items error: %s", e)
-        return None, str(e)
+        return None, "Failed to create order"
 
 
 async def get_customer_orders(customer_id: str, limit: int = 20) -> list[dict]:
@@ -278,6 +283,20 @@ async def get_order_by_id(order_id: str) -> Optional[dict]:
 
 # ── PAYMENTS ───────────────────────────────────────────────────────────────────
 
+async def get_order_payments(order_id: str) -> list[dict]:
+    try:
+        res = (
+            _supabase.table("payments")
+            .select("id, status")
+            .eq("order_id", order_id)
+            .execute()
+        )
+        return res.data or []
+    except Exception as e:
+        logger.error("get_order_payments error: %s", e)
+        return []
+
+
 async def create_payment(
     order_id: str,
     method: str,
@@ -322,7 +341,7 @@ async def confirm_payment(payment_id: str) -> Optional[dict]:
     try:
         pay_res = (
             _supabase.table("payments")
-            .update({"status": "confirmed"})
+            .update({"status": "verified"})
             .eq("id", payment_id)
             .execute()
         )
@@ -339,13 +358,27 @@ async def confirm_payment(payment_id: str) -> Optional[dict]:
         return None
 
 
+_RECEIPT_EXTENSIONS = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+}
+
+
+def receipt_url_prefix() -> str:
+    """Public URL prefix of the receipts bucket — receipt links must start with it."""
+    return f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{RECEIPTS_BUCKET}/"
+
+
 async def upload_receipt_to_storage(
     file_bytes: bytes,
-    filename: str,
     content_type: str,
 ) -> Optional[str]:
     try:
-        path = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{filename}"
+        # Random name: never trust the client filename, and keep receipt URLs unguessable.
+        ext = _RECEIPT_EXTENSIONS.get(content_type, "jpg")
+        path = f"{datetime.now(timezone.utc).strftime('%Y%m%d')}/{uuid.uuid4().hex}.{ext}"
         _supabase.storage.from_(RECEIPTS_BUCKET).upload(
             path=path,
             file=file_bytes,

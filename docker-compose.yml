@@ -1,0 +1,42 @@
+# Production stack for the VPS:  docker compose up -d --build
+# All settings come from .env (copy .env.example and fill it in).
+services:
+  api:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bot:
+    build: .
+    command: ["python", "main.py"]
+    env_file: .env
+    restart: unless-stopped
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/Caddy.Dockerfile
+      args:
+        VITE_API_URL: https://${API_DOMAIN:?set API_DOMAIN in .env}
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in .env}
+      API_DOMAIN: ${API_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

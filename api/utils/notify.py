@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from html import escape
 
 import httpx
 
@@ -36,12 +36,12 @@ async def notify_admin_new_order(
     delivery = "🏪 Olib ketish" if order.get("delivery_type") == "pickup" else "🚚 Yetkazib berish"
     lines = [
         f"🛍️ <b>Yangi buyurtma #{short_id}</b>",
-        f"👤 {customer.get('full_name', '—')} | {customer.get('phone', '—')}",
+        f"👤 {escape(customer.get('full_name') or '—')} | {escape(customer.get('phone') or '—')}",
         f"📦 {delivery}",
         "",
     ]
     for item in items:
-        name = item.get("product_name", item.get("product_id", "?")[-6:])
+        name = escape(item.get("product_name") or item.get("product_id", "?")[-6:])
         qty = item.get("quantity", 0)
         price = float(item.get("unit_price", 0))
         lines.append(f"  • {name} × {qty} = {qty * price:,.0f} so'm")
@@ -50,9 +50,9 @@ async def notify_admin_new_order(
     lines.append(f"\n💰 <b>Jami: {total:,.0f} so'm</b>")
 
     if order.get("address"):
-        lines.append(f"📍 {order['address']}")
+        lines.append(f"📍 {escape(order['address'])}")
     if order.get("notes"):
-        lines.append(f"📝 {order['notes']}")
+        lines.append(f"📝 {escape(order['notes'])}")
 
     for chat_id in ADMIN_NOTIFY_IDS:
         await send_message(chat_id, "\n".join(lines))
@@ -65,18 +65,18 @@ async def notify_admin_new_payment(
 ) -> None:
     short_id = order["id"][-8:].upper()
     method_labels = {"card": "💳 Bank kartasi", "click": "📱 Click", "payme": "📱 Payme", "cash": "💵 Naqd"}
-    method = method_labels.get(payment.get("method", ""), payment.get("method", "—"))
+    method = method_labels.get(payment.get("method", ""), escape(payment.get("method") or "—"))
     amount = float(payment.get("amount", 0))
 
     text = (
         f"💳 <b>Yangi to'lov</b>\n"
         f"📋 Buyurtma: <b>#{short_id}</b>\n"
-        f"👤 {customer.get('full_name', '—')} | {customer.get('phone', '—')}\n"
+        f"👤 {escape(customer.get('full_name') or '—')} | {escape(customer.get('phone') or '—')}\n"
         f"💰 Summa: <b>{amount:,.0f} so'm</b>\n"
         f"💳 Usul: {method}\n"
     )
     if payment.get("receipt_file_id"):
-        text += f"📎 Chek: {payment['receipt_file_id']}"
+        text += f"📎 Chek: {escape(payment['receipt_file_id'])}"
 
     for chat_id in ADMIN_NOTIFY_IDS:
         await send_message(chat_id, text)

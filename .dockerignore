@@ -1,0 +1,14 @@
+.git
+.idea
+.venv
+.env
+**/__pycache__
+**/*.py[cod]
+miniapp/node_modules
+miniapp/dist
+miniapp/.env
+docs
+# Root-level only (patterns without ** do not match inside miniapp/)
+*.sql
+*.html
+*.sh

@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from api.database import (
     create_order_with_items,
@@ -86,6 +86,8 @@ async def create_order(
                 status_code=409,
                 detail={"error": error.split(":")[1] if ":" in error else "Insufficient stock", "code": "OUT_OF_STOCK"},
             )
+        if error == "Failed to create order":
+            raise HTTPException(status_code=500, detail={"error": error, "code": "SERVER_ERROR"})
         raise HTTPException(
             status_code=400,
             detail={"error": error, "code": "VALIDATION_ERROR"},

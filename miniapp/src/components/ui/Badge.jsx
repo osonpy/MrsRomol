@@ -36,7 +36,7 @@ export function statusBadge(status) {
 export function paymentBadge(status) {
   const map = {
     pending_verification: { emoji: '⏳', variant: 'warning' },
-    confirmed:            { emoji: '✅', variant: 'success' },
+    verified:             { emoji: '✅', variant: 'success' },
     rejected:             { emoji: '❌', variant: 'danger' },
   }
   return map[status] ?? { emoji: '', variant: 'gray' }

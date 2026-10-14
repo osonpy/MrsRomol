@@ -1,27 +1,18 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException
 
-from api.config import ADMIN_SECRET_KEY
+from api.middleware.auth import AdminKey
 from api.schemas.payment import NotifyRequest
 from api.utils.notify import send_message
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/internal", tags=["internal"])
-
-
-def _admin_only(x_admin_key: str = Header(..., alias="X-Admin-Key")) -> None:
-    if x_admin_key != ADMIN_SECRET_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail={"error": "Forbidden", "code": "FORBIDDEN"},
-        )
+router = APIRouter(prefix="/internal", tags=["internal"], dependencies=[AdminKey])
 
 
 @router.post("/notify", status_code=200)
 async def internal_notify(
     body: NotifyRequest,
-    _: None = Depends(_admin_only),
 ) -> dict:
     success = await send_message(
         chat_id=body.chat_id,

@@ -1,12 +1,13 @@
 import hashlib
 import hmac
 import json
+import time
 import urllib.parse
 from typing import Annotated
 
 from fastapi import Header, HTTPException, Depends
 
-from api.config import BOT_TOKEN, DEV_MODE
+from api.config import ADMIN_SECRET_KEY, BOT_TOKEN, DEV_MODE, INIT_DATA_MAX_AGE
 
 _MOCK_INIT_DATA = "mock_init_data_for_dev"
 _MOCK_TELEGRAM_ID = "123456789"
@@ -47,6 +48,14 @@ def verify_telegram_init_data(
     if not hmac.compare_digest(expected, received_hash):
         _unauthorized()
 
+    # A valid signature never expires on its own, so reject stale initData.
+    try:
+        auth_date = int(parsed.get("auth_date", "0"))
+    except ValueError:
+        _unauthorized()
+    if time.time() - auth_date > INIT_DATA_MAX_AGE:
+        _unauthorized()
+
     user_str = parsed.get("user", "{}")
     try:
         user = json.loads(user_str)
@@ -65,3 +74,15 @@ def _unauthorized() -> None:
 
 
 TelegramUser = Annotated[str, Depends(verify_telegram_init_data)]
+
+
+def require_admin_key(x_admin_key: str = Header(..., alias="X-Admin-Key")) -> None:
+    """FastAPI dependency: allows the request only with the correct X-Admin-Key."""
+    if not hmac.compare_digest(x_admin_key.encode(), ADMIN_SECRET_KEY.encode()):
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "Admin access required", "code": "FORBIDDEN"},
+        )
+
+
+AdminKey = Depends(require_admin_key)

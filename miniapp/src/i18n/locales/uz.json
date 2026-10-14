@@ -69,7 +69,7 @@
     },
     "payment_status": {
       "pending_verification": "To'lov kutilmoqda",
-      "confirmed": "To'lov tasdiqlandi",
+      "verified": "To'lov tasdiqlandi",
       "rejected": "To'lov rad etildi"
     }
   },

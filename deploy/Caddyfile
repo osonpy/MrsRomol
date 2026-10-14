@@ -1,0 +1,24 @@
+# Domains come from APP_DOMAIN / API_DOMAIN in .env (see docker-compose.yml).
+# Caddy obtains and renews Let's Encrypt certificates for both automatically.
+
+{$APP_DOMAIN} {
+	root * /srv/miniapp
+	encode zstd gzip
+
+	# Vite puts content-hashed files in /assets — safe to cache forever.
+	header /assets/* Cache-Control "public, max-age=31536000, immutable"
+	# index.html must always be fresh so users get new builds right away.
+	header /index.html Cache-Control "no-cache"
+
+	# SPA: unknown paths fall back to index.html (React Router handles them).
+	try_files {path} /index.html
+	file_server
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy api:8000
+}

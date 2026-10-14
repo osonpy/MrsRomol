@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.config import ALLOWED_ORIGINS
+from api.config import ALLOWED_ORIGINS, DEV_MODE
 from api.routers import products, customers, orders, payments, internal
 
 logging.basicConfig(
@@ -19,9 +19,14 @@ app = FastAPI(
     title="Misr Romol API",
     description="REST API for the Misr Romol Telegram Mini App",
     version="2.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # API docs only in development — no need to publish the API map in production.
+    docs_url="/docs" if DEV_MODE else None,
+    redoc_url="/redoc" if DEV_MODE else None,
+    openapi_url="/openapi.json" if DEV_MODE else None,
 )
+
+if DEV_MODE:
+    logger.warning("DEV_MODE is ON: mock initData is accepted. Never enable this in production!")
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,4 +69,4 @@ async def health() -> dict:
 
 @app.get("/", tags=["health"])
 async def root() -> dict:
-    return {"message": "Misr Romol API", "docs": "/docs"}
+    return {"message": "Misr Romol API"}

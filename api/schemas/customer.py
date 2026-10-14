@@ -1,20 +1,22 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+Language = Literal["uz", "ru", "en"]
 
 
 class CustomerRegisterRequest(BaseModel):
-    telegram_id: str
-    full_name: str
-    language: str = "uz"
-    phone: Optional[str] = None
+    telegram_id: str = Field(max_length=32)
+    full_name: str = Field(min_length=1, max_length=128)
+    language: Language = "uz"
+    phone: Optional[str] = Field(default=None, max_length=32)
 
 
 class CustomerUpdateRequest(BaseModel):
-    phone: Optional[str] = None
-    language: Optional[str] = None
-    full_name: Optional[str] = None
+    phone: Optional[str] = Field(default=None, max_length=32)
+    language: Optional[Language] = None
+    full_name: Optional[str] = Field(default=None, min_length=1, max_length=128)
 
 
 class CustomerResponse(BaseModel):

@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path
 from fastapi.responses import RedirectResponse
 
 from api.database import get_all_products, get_product_by_id, get_telegram_file_url
@@ -37,8 +37,8 @@ async def proxy_product_image(
 
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
+    telegram_id: TelegramUser,
     product_id: str = Path(...),
-    telegram_id: TelegramUser = None,
 ) -> ProductResponse:
     product = await get_product_by_id(product_id)
     if not product:

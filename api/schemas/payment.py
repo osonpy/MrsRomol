@@ -1,14 +1,16 @@
 from __future__ import annotations
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreatePaymentRequest(BaseModel):
-    order_id: str
-    method: str  # "card" | "click" | "payme" | "cash"
-    amount: float
-    receipt_file_id: Optional[str] = None
+    order_id: str = Field(max_length=64)
+    method: Literal["card", "click", "payme", "cash"] = "card"
+    # Ignored: the amount is always taken from the order on the server.
+    # Kept optional so older Mini App builds that still send it keep working.
+    amount: Optional[float] = None
+    receipt_file_id: Optional[str] = Field(default=None, max_length=1024)
 
 
 class PaymentResponse(BaseModel):

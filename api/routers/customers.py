@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from api.database import get_customer, upsert_customer, update_customer_profile
 from api.schemas.customer import CustomerRegisterRequest, CustomerUpdateRequest, CustomerResponse

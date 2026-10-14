@@ -45,12 +45,6 @@ ADMIN_USER_IDS: set[int] = _parse_admin_ids()
 SUPABASE_URL: str = _require("SUPABASE_URL")
 SUPABASE_KEY: str = _require("SUPABASE_KEY")
 
-# ── Business logic ───────────────────────────────────────────────────────────
-PAYMENT_CARD: str = _require("PAYMENT_CARD")
-
-# ── Pagination ───────────────────────────────────────────────────────────────
-PRODUCTS_PER_PAGE: int = 5
-
 # ── Supported languages ───────────────────────────────────────────────────────
 SUPPORTED_LANGUAGES: list[str] = ["uz", "ru", "en"]
 DEFAULT_LANGUAGE: str = "uz"

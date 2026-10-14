@@ -69,7 +69,7 @@
     },
     "payment_status": {
       "pending_verification": "Payment pending",
-      "confirmed": "Payment confirmed",
+      "verified": "Payment confirmed",
       "rejected": "Payment rejected"
     }
   },

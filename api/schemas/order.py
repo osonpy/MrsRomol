@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DeliveryType(str, Enum):
@@ -11,15 +11,15 @@ class DeliveryType(str, Enum):
 
 
 class OrderItemRequest(BaseModel):
-    product_id: str
-    quantity: int
+    product_id: str = Field(max_length=64)
+    quantity: int = Field(ge=1, le=100)
 
 
 class CreateOrderRequest(BaseModel):
-    items: List[OrderItemRequest]
+    items: List[OrderItemRequest] = Field(min_length=1, max_length=50)
     delivery_type: DeliveryType
-    address: Optional[str] = None
-    notes: Optional[str] = None
+    address: Optional[str] = Field(default=None, max_length=500)
+    notes: Optional[str] = Field(default=None, max_length=1000)
 
 
 class OrderItemResponse(BaseModel):

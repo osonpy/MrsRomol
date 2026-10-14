@@ -11,11 +11,13 @@ All admin-side functionality:
 3. /setphotos FSM
    — Admin picks a product → sends up to 3 photos → saved as Telegram file_ids
 
-IMPORTANT: Callbacks are registered globally (not filtered by chat type) because
-the admin group can be either a group or a private chat with the admin.
+IMPORTANT: Handlers are not filtered by chat type (the admin chat can be a group
+or a private chat), but every message and callback is filtered by sender —
+only users in ADMIN_USER_IDS get through.
 """
 import logging
 from datetime import datetime
+from html import escape
 
 from aiogram import Router, F, Bot
 from aiogram.filters import Command, BaseFilter
@@ -28,7 +30,7 @@ from aiogram.types import (
     InlineKeyboardButton,
 )
 
-from bot.config import ADMIN_GROUP_ID, ADMIN_USER_IDS
+from bot.config import ADMIN_USER_IDS
 from bot.database import (
     update_order_status,
     update_payment_status,
@@ -53,12 +55,18 @@ router = Router()
 
 class IsAdmin(BaseFilter):
     """
-    Allows a message/command only if the sender's user ID is in ADMIN_USER_IDS.
-    Works in both private chats and group chats.
+    Allows an update only if the sender's user ID is in ADMIN_USER_IDS.
+    Works for messages and callback queries, in private and group chats.
     Configured via ADMIN_USER_IDS in .env (comma-separated Telegram user IDs).
     """
-    async def __call__(self, message: Message) -> bool:
-        return message.from_user.id in ADMIN_USER_IDS
+    async def __call__(self, event: Message | CallbackQuery) -> bool:
+        return event.from_user is not None and event.from_user.id in ADMIN_USER_IDS
+
+
+# Every handler in this router is admin-only. Callback data can be forged by
+# any user, so the check must cover callbacks too, not just commands.
+router.message.filter(IsAdmin())
+router.callback_query.filter(IsAdmin())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -68,17 +76,6 @@ class IsAdmin(BaseFilter):
 class PhotoUploadFSM(StatesGroup):
     choosing_product = State()   # Admin picks which product to upload for
     uploading_photos = State()   # Admin sends photos one by one
-
-
-# ── Guard: only accept commands/callbacks from the admin ──────────────────────
-
-def _is_admin(user_id: int) -> bool:
-    """
-    Return True if the sender is the configured admin.
-    ADMIN_GROUP_ID can be a group (negative) or personal chat (positive).
-    For group chats, all group members can trigger; refine if needed.
-    """
-    return True  # Aiogram filter below restricts to ADMIN_GROUP_ID chat
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -119,7 +116,7 @@ async def _notify_customer(
 # /pending — List all unverified payments (solves concurrent payment problem)
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.message(IsAdmin(), Command("pending"))
+@router.message(Command("pending"))
 async def cmd_pending(message: Message, bot: Bot) -> None:
     """
     Show all payments with status='pending_verification'.
@@ -147,7 +144,7 @@ async def cmd_pending(message: Message, bot: Bot) -> None:
 
         # Resolve customer name
         customer  = await get_customer_by_order_id(order_id)
-        cust_name = customer.get("full_name", "—") if customer else "—"
+        cust_name = escape(customer.get("full_name") or "—") if customer else "—"
 
         caption = (
             f"💳 <b>To'lov</b>\n"
@@ -234,7 +231,7 @@ async def cb_admin_payment_verify(callback: CallbackQuery, bot: Bot) -> None:
     order_id = callback.data.split(":", 1)[1]
 
     await update_payment_status(order_id, "verified")
-    await update_order_status(order_id, "shipped")
+    await update_order_status(order_id, "confirmed")
     # ★ This is the ONLY place customer gets 'confirmed' notification
     await _notify_customer(bot, order_id, "payment_verified")
 
@@ -262,7 +259,7 @@ async def cb_admin_payment_reject(callback: CallbackQuery, bot: Bot) -> None:
 # /setphotos — Admin uploads product photos
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.message(IsAdmin(), Command("setphotos"))
+@router.message(Command("setphotos"))
 async def cmd_setphotos(message: Message, state: FSMContext) -> None:
     """
     Step 1: Admin sends /setphotos
@@ -404,7 +401,6 @@ async def msg_setphotos_done(message: Message, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data == "sp_cancel")
-@router.callback_query(PhotoUploadFSM.choosing_product, F.data == "sp_cancel")
 async def cb_setphotos_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     """Admin cancelled the photo upload flow."""
     await state.clear()
@@ -419,6 +415,12 @@ async def msg_setphotos_wrong_type(message: Message) -> None:
         "📸 Iltimos, faqat <b>rasm</b> yuboring yoki /done bilan tugating.",
         parse_mode="HTML",
     )
+
+
+@router.callback_query(F.data == "noop")
+async def cb_noop(callback: CallbackQuery) -> None:
+    """Status label buttons left after an action — just stop the spinner."""
+    await callback.answer()
 
 
 # ══════════════════════════════════════════════════════════════════════════════

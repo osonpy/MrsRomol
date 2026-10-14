@@ -31,12 +31,25 @@ ADMIN_NOTIFY_IDS: list[int] = _parse_notify_ids()
 SUPABASE_URL: str = _require("SUPABASE_URL")
 SUPABASE_KEY: str = _require("SUPABASE_KEY")
 
-# X-Admin-Key header value for admin/internal endpoints
-ADMIN_SECRET_KEY: str = os.getenv("ADMIN_SECRET_KEY", os.getenv("INTERNAL_SECRET", "change-me"))
-INTERNAL_SECRET: str = ADMIN_SECRET_KEY  # backward-compat alias
+# X-Admin-Key header value for admin/internal endpoints.
+# No default: a guessable key would expose payment confirmation to anyone.
+def _admin_secret_key() -> str:
+    key = os.getenv("ADMIN_SECRET_KEY") or os.getenv("INTERNAL_SECRET") or ""
+    if len(key) < 32 or key.startswith("change-me"):
+        raise EnvironmentError(
+            "ADMIN_SECRET_KEY must be set to a random string of at least 32 characters. "
+            'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
+    return key
+
+ADMIN_SECRET_KEY: str = _admin_secret_key()
 
 _raw_origins = os.getenv("ALLOWED_ORIGINS", f"{MINI_APP_URL},http://localhost:5173")
 ALLOWED_ORIGINS: list[str] = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 RECEIPTS_BUCKET: str = os.getenv("RECEIPTS_BUCKET", "receipts")
 DEV_MODE: bool = os.getenv("DEV_MODE", "false").lower() == "true"
+
+# How long a Telegram initData signature stays valid (seconds). Limits replay
+# of a leaked initData string.
+INIT_DATA_MAX_AGE: int = int(os.getenv("INIT_DATA_MAX_AGE", str(24 * 60 * 60)))
