@@ -6,12 +6,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NET=msrromol-pytest
 JWT_SECRET=test-jwt-secret-that-is-at-least-32-chars
-cleanup() { docker rm -f msrt-pg msrt-rest msrt-gw >/dev/null 2>&1 || true; docker network rm "$NET" >/dev/null 2>&1 || true; }
+cleanup() { docker rm -f -v msrt-pg msrt-rest msrt-gw >/dev/null 2>&1 || true; docker network rm "$NET" >/dev/null 2>&1 || true; }
 cleanup; trap cleanup EXIT
 docker network create "$NET" >/dev/null
 
 docker run -d --name msrt-pg --network "$NET" -e POSTGRES_PASSWORD=test postgres:15-alpine >/dev/null
-until docker exec msrt-pg pg_isready -U postgres -q; do sleep 0.5; done; sleep 1
+wait_for() { for _ in $(seq 1 120); do "$@" && return 0; sleep 0.5; done; echo "timeout: $*" >&2; exit 1; }
+wait_for docker exec msrt-pg pg_isready -U postgres -q; sleep 1
 psql() { docker exec -i msrt-pg psql -U postgres -v ON_ERROR_STOP=1 -q "$@"; }
 psql < db/tests/00_supabase_stub.sql
 psql < db/schema.sql
@@ -23,7 +24,7 @@ docker run -d --name msrt-rest --network "$NET" \
   postgrest/postgrest:v12.2.3 >/dev/null
 docker run -d --name msrt-gw --network "$NET" -p 54331:80 \
   -v "$PWD/tests/nginx.conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine >/dev/null
-until curl -sf -o /dev/null http://localhost:54331/rest/v1/; do sleep 0.5; done
+wait_for curl -sf -o /dev/null http://localhost:54331/rest/v1/
 
 export TEST_JWT_SECRET="$JWT_SECRET" TEST_DB_CONTAINER=msrt-pg
 uv run pytest tests "$@"

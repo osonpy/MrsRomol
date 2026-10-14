@@ -2,9 +2,10 @@
 admin_settings.py — promo codes (admins), payment cards, shop settings and
 staff roles (super_admin only).
 """
+from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from api.auth import Admin, SuperAdmin
 from api.db import db, first, run
@@ -92,6 +93,26 @@ async def list_staff(admin: SuperAdmin) -> dict:
         .neq("role", "customer").order("role")
     )
     return {"staff": rows}
+
+
+@router.get("/customers")
+async def search_customers(
+    admin: SuperAdmin,
+    q: Optional[str] = Query(default=None, max_length=64, description="name, phone or Telegram ID"),
+) -> dict:
+    """Find a person to appoint as admin — by name, phone or Telegram ID."""
+    query = db().table("customers").select("id, telegram_id, full_name, phone, role")
+    term = "".join(ch for ch in (q or "") if ch not in ',()*%:\\"\'').strip()
+    if term:
+        digits = "".join(ch for ch in term if ch.isdigit())
+        conditions = [f"full_name.ilike.*{term}*"]
+        if digits:
+            conditions.append(f"phone.ilike.*{digits}*")
+            if digits == term and len(digits) <= 15:
+                conditions.append(f"telegram_id.eq.{digits}")
+        query = query.or_(",".join(conditions))
+    rows = await run(query.order("created_at", desc=True).limit(20))
+    return {"customers": rows}
 
 
 @router.put("/staff/{telegram_id}")

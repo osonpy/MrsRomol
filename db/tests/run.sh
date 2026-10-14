@@ -4,10 +4,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 NAME=msrromol-dbtest
-docker rm -f "$NAME" >/dev/null 2>&1 || true
+docker rm -f -v "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" -e POSTGRES_PASSWORD=test postgres:15-alpine >/dev/null
-trap 'docker rm -f "$NAME" >/dev/null' EXIT
-until docker exec "$NAME" pg_isready -U postgres -q; do sleep 0.5; done
+trap 'docker rm -f -v "$NAME" >/dev/null' EXIT
+wait_for() { for _ in $(seq 1 120); do "$@" && return 0; sleep 0.5; done; echo "timeout: $*" >&2; exit 1; }
+wait_for docker exec "$NAME" pg_isready -U postgres -q
 sleep 1
 
 psql() { docker exec -i "$NAME" psql -U postgres -v ON_ERROR_STOP=1 -q "$@"; }

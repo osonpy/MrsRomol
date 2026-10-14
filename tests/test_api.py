@@ -66,6 +66,14 @@ def test_owner_appoints_admin(owner, wife):
     assert {s["telegram_id"] for s in staff} == {OWNER, WIFE}
 
 
+def test_super_admin_finds_people_to_appoint(owner, wife, ali):
+    found = owner.get("/admin/customers", params={"q": "ali"}).json()["customers"]
+    assert [c["telegram_id"] for c in found] == [ALI]
+    assert owner.get("/admin/customers", params={"q": str(WIFE)}).json()["customers"][0]["role"] == "admin"
+    assert owner.get("/admin/customers", params={"q": "x,y)or(z"}).status_code == 200
+    assert wife.get("/admin/customers").status_code == 403
+
+
 def test_only_super_admin_manages_cards_and_settings(owner, wife):
     card = {"card_number": "8600 1234 5678 9012", "holder_name": "MAKHMUD", "card_type": "uzcard"}
     assert wife.post("/admin/payment-cards", json=card).status_code == 403
