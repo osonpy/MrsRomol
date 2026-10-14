@@ -10,7 +10,15 @@ Telegram Mini App orqali ishlaydigan onlayn do'kon. Reja va kelishuvlar: [docs/S
 | `bot/` + `main.py` | Telegram bot — `/start`, admin xabarnomalari va tasdiqlash tugmalari |
 | `miniapp/` | React Mini App (Vite + Tailwind) |
 | `deploy/` | Caddy (HTTPS + Mini App + API proksi) |
-| `*.sql` | Supabase sxema va migratsiyalar |
+| `db/` | Baza sxemasi (`schema.sql`) va uning testlari |
+
+## Baza (Supabase)
+
+1. supabase.com → yangi loyiha.
+2. SQL Editor → `db/schema.sql` ni to'liq joylashtirib Run. Jadvallar, funksiyalar, xavfsizlik va bucketlar yaratiladi.
+3. Project Settings → API Keys → **secret** kalitni `.env` dagi `SUPABASE_KEY` ga qo'ying. Publishable/anon kalit ishlamaydi: baza faqat backend'ga ochiq.
+
+Sxemani o'zgartirsangiz, testlarni ishga tushiring (Docker kerak): `bash db/tests/run.sh`
 
 ## Lokal ishga tushirish
 
