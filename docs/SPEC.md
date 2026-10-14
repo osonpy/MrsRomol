@@ -1,4 +1,4 @@
-# Misr Romol — Texnik topshiriq (v1)
+# Mrs Romol — Texnik topshiriq (v1)
 
 > Holat: **qoralama, tasdiqlash kutilmoqda** · Sana: 2026-10-14
 

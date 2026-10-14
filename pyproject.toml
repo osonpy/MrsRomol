@@ -1,7 +1,7 @@
 [project]
 name = "msrromol"
 version = "0.1.0"
-description = "Misr Romol — Telegram Mini App shop (API + bot)"
+description = "Mrs Romol — Telegram Mini App shop (API + bot)"
 requires-python = ">=3.12"
 dependencies = [
     # Bot
@@ -20,6 +20,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "numpy>=2.5.4",
     "pytest>=9.1.1",
 ]
 

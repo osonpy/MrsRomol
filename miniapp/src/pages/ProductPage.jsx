@@ -1,205 +1,401 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { productsApi } from '../api/products'
-import { useCartStore } from '../store/cartStore'
-import { useTelegram } from '../hooks/useTelegram'
-import { Badge } from '../components/ui/Badge'
-import { Button } from '../components/ui/Button'
-import { SkeletonCard } from '../components/ui/SkeletonCard'
-import { formatPrice } from '../utils/formatPrice'
+import { useNavigate, useParams } from 'react-router-dom'
+import { BagIcon, InfoIcon, RulerIcon, XIcon } from '../components/icons'
+import { HeartButton, PriceLabel, ProductImage } from '../components/product'
+import { Button, EmptyState, ErrorState, Sheet, Skeleton, StickyBar } from '../components/ui'
+import { toast } from '../lib/toast'
+import { useProduct } from '../hooks/queries'
+import { localized, money, pick } from '../lib/format'
+import { formatCell, recommendSize } from '../lib/sizing'
+import { haptic } from '../lib/telegram'
+import { useCart } from '../store/cart'
+
+// ── gallery ───────────────────────────────────────────────────────────────────
+
+function Gallery({ images, name, scrollTo, onOpen }) {
+  const ref = useRef(null)
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    if (scrollTo == null || !ref.current) return
+    ref.current.scrollTo({ left: scrollTo * ref.current.clientWidth, behavior: 'smooth' })
+  }, [scrollTo])
+
+  if (!images.length) return <ProductImage image={null} className="aspect-[3/4] w-full" />
+
+  return (
+    <div className="relative">
+      <div
+        ref={ref}
+        onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+        className="no-scrollbar flex aspect-[3/4] w-full snap-x snap-mandatory overflow-x-auto"
+      >
+        {images.map((img, i) => (
+          <button key={img.id} type="button" onClick={() => onOpen(i)} className="h-full w-full shrink-0 snap-center">
+            <img
+              src={img.url}
+              alt={name}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              className="h-full w-full bg-rose-50 object-cover"
+            />
+          </button>
+        ))}
+      </div>
+      {images.length > 1 && (
+        <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+          {images.map((img, i) => (
+            <span
+              key={img.id}
+              className={`h-1.5 rounded-full transition-all ${i === index ? 'w-5 bg-white' : 'w-1.5 bg-white/60'}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Lightbox({ images, start, onClose }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    ref.current?.scrollTo({ left: start * ref.current.clientWidth })
+  }, [start])
+  return createPortal(
+    <div className="fixed inset-0 z-50 animate-fade-in bg-black">
+      <div ref={ref} className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto">
+        {images.map((img) => (
+          <div key={img.id} className="flex h-full w-full shrink-0 snap-center items-center justify-center">
+            <img src={img.url} alt="" className="max-h-full max-w-full object-contain" />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="close"
+        className="absolute right-4 top-4 rounded-full bg-white/15 p-2.5 text-white backdrop-blur"
+      >
+        <XIcon className="h-6 w-6" />
+      </button>
+    </div>,
+    document.body,
+  )
+}
+
+// ── size guide ────────────────────────────────────────────────────────────────
+
+function columnLabel(t, col) {
+  const key = `sizing.columns.${col}`
+  const label = t(key)
+  return label === key ? col : label
+}
+
+function SizeGuide({ chart, open, onClose, onPick }) {
+  const { t } = useTranslation()
+  const [measures, setMeasures] = useState({})
+  const result = recommendSize(chart, measures)
+
+  return (
+    <Sheet open={open} onClose={onClose} title={t('sizing.title')}>
+      <p className="text-sm text-ink-soft">{t('sizing.intro')}</p>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        {chart.columns.map((col) => (
+          <label key={col}>
+            <span className="label">{columnLabel(t, col)}</span>
+            <div className="relative">
+              <input
+                inputMode="decimal"
+                className="field pr-10"
+                value={measures[col] || ''}
+                onChange={(e) => setMeasures((m) => ({ ...m, [col]: e.target.value.replace(/[^\d.,]/g, '').replace(',', '.') }))}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-faint">{t('common.cm')}</span>
+            </div>
+          </label>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-ink-faint">{t('sizing.how')}</p>
+
+      <div className="mt-5 rounded-2xl bg-rose-50 p-4 text-center">
+        {result ? (
+          <>
+            <p className="font-serif text-2xl font-semibold text-rose-700">
+              {t(result.exact ? 'sizing.result' : 'sizing.result_near', { size: result.size })}
+            </p>
+            <Button className="mt-3 w-full" onClick={() => (onPick(result.size), onClose())}>
+              {t('sizing.choose', { size: result.size })}
+            </Button>
+          </>
+        ) : (
+          <p className="text-sm text-ink-soft">{t('sizing.fill')}</p>
+        )}
+      </div>
+
+      <h3 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wider text-ink-soft">{t('product.size_chart')}</h3>
+      <SizeTable chart={chart} highlight={result?.size} />
+    </Sheet>
+  )
+}
+
+function SizeTable({ chart, highlight }) {
+  const { t } = useTranslation()
+  return (
+    <div className="overflow-x-auto rounded-xl border border-rose-100">
+      <table className="w-full text-center text-sm">
+        <thead className="bg-rose-50 text-ink-soft">
+          <tr>
+            <th className="px-3 py-2 font-semibold">{t('product.choose_size')}</th>
+            {chart.columns.map((c) => (
+              <th key={c} className="px-3 py-2 font-semibold">
+                {columnLabel(t, c)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {chart.rows.map((row) => (
+            <tr key={row.size} className={`border-t border-rose-100 ${row.size === highlight ? 'bg-rose-100 font-semibold' : 'bg-white'}`}>
+              <td className="px-3 py-2 font-semibold">{row.size}</td>
+              {chart.columns.map((c) => (
+                <td key={c} className="px-3 py-2 tabular-nums">
+                  {formatCell(row[c])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ── page ──────────────────────────────────────────────────────────────────────
+
+function ProductSkeleton() {
+  return (
+    <div>
+      <Skeleton className="aspect-[3/4] w-full rounded-none" />
+      <div className="space-y-3 p-4">
+        <Skeleton className="h-7 w-3/4" />
+        <Skeleton className="h-6 w-1/3" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </div>
+  )
+}
 
 export default function ProductPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const { t } = useTranslation()
-  const { tg } = useTelegram()
-  const addItem = useCartStore((s) => s.addItem)
-  const cartItems = useCartStore((s) => s.items)
+  const navigate = useNavigate()
+  const { data: p, isPending, isError, error, refetch } = useProduct(id)
+  const add = useCart((s) => s.add)
+  const cartItems = useCart((s) => s.items)
 
-  const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [qty, setQty] = useState(1)
-  const [selectedColor, setSelectedColor] = useState(null)
-  const [added, setAdded] = useState(false)
+  const [color, setColor] = useState(null)
+  const [size, setSize] = useState(null)
+  const [lightbox, setLightbox] = useState(null)
+  const [guideOpen, setGuideOpen] = useState(false)
+  const [wantSelection, setWantSelection] = useState(false)
 
+  const { colors, sizes } = useMemo(() => {
+    const vs = p?.variants ?? []
+    const colorMap = new Map()
+    vs.forEach((v) => v.color_uz && !colorMap.has(v.color_uz) && colorMap.set(v.color_uz, { uz: v.color_uz, ru: v.color_ru, hex: v.color_hex }))
+    return { colors: [...colorMap.values()], sizes: [...new Set(vs.filter((v) => v.size).map((v) => v.size))] }
+  }, [p])
+
+  // Pre-select the first colour that is in stock, and the only size if there is one.
   useEffect(() => {
-    if (!tg?.BackButton) return
-    tg.BackButton.show()
-    tg.BackButton.onClick(() => navigate(-1))
-    return () => tg.BackButton.hide()
-  }, [tg, navigate])
+    if (!p) return
+    const firstInStock = p.variants.find((v) => v.in_stock && v.color_uz)
+    setColor(firstInStock?.color_uz ?? colors[0]?.uz ?? null)
+    setSize(sizes.length === 1 ? sizes[0] : null)
+  }, [p, colors, sizes])
 
-  useEffect(() => {
-    setLoading(true)
-    productsApi
-      .get(id)
-      .then((p) => {
-        setProduct(p)
-        const colors = p.metadata?.colors
-        if (colors?.length) setSelectedColor(colors[0])
-      })
-      .catch((e) => setError(e?.error ?? e?.message ?? 'Error'))
-      .finally(() => setLoading(false))
-  }, [id])
+  const variantFor = (c, s) =>
+    p?.variants.find((v) => (v.color_uz ?? null) === (colors.length ? c : null) && (v.size ?? null) === (sizes.length ? s : null))
+  const selected = variantFor(color, size)
+  const inCart = selected ? cartItems.find((i) => i.variant_id === selected.id)?.quantity ?? 0 : 0
+  const colorImageIndex = p?.images.findIndex((img) => img.color_uz && img.color_uz === color)
 
-  const inStock = product?.stock_qty > 0
-  const colors = product?.metadata?.colors ?? []
-  const totalInCart = cartItems
-    .filter((i) => i.product.id === id)
-    .reduce((s, i) => s + i.qty, 0)
-  const maxQty = product ? Math.max(0, product.stock_qty - totalInCart) : 0
-
-  const handleAdd = () => {
-    if (!product || !inStock) return
-    addItem(product, qty)
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
-    setQty(1)
-  }
-
-  if (loading) {
-    return (
-      <div className="p-4 space-y-3">
-        <div className="aspect-square rounded-2xl overflow-hidden">
-          <SkeletonCard />
-        </div>
-      </div>
+  if (isPending) return <ProductSkeleton />
+  if (isError) {
+    return error?.status === 404 ? (
+      <EmptyState
+        icon={BagIcon}
+        title={t('product.not_found')}
+        action={<Button variant="outline" onClick={() => navigate('/', { replace: true })}>{t('common.back_home')}</Button>}
+      />
+    ) : (
+      <ErrorState error={error} onRetry={refetch} />
     )
   }
 
-  if (error || !product) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-8">
-        <span className="text-5xl">😕</span>
-        <p style={{ color: 'var(--tg-theme-hint-color)' }}>{error || t('common.error')}</p>
-        <Button onClick={() => navigate(-1)}>{t('common.back')}</Button>
-      </div>
-    )
-  }
+  const name = pick(p, 'name')
+  const description = pick(p, 'description')
 
-  const imageUrl = product.image_file_id ? productsApi.imageUrl(product.id, 0) : null
+  function addToCart() {
+    if (!selected) {
+      haptic.error()
+      setWantSelection(true)
+      toast.show(t('product.choose_variant'))
+      return
+    }
+    add({
+      variant_id: selected.id,
+      product_id: p.id,
+      name_uz: p.name_uz,
+      name_ru: p.name_ru,
+      color_uz: selected.color_uz,
+      color_ru: selected.color_ru,
+      size: selected.size,
+      price: selected.price,
+      image: p.images.find((img) => img.color_uz === selected.color_uz) ?? p.images[0] ?? null,
+    })
+    haptic.success()
+    toast.show(t('product.added'))
+  }
 
   return (
-    <div className="flex flex-col min-h-screen pb-28" style={{ background: 'var(--tg-theme-bg-color)' }}>
-      {!tg?.BackButton && (
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
-          style={{ background: 'var(--tg-theme-bg-color)' }}
-        >
-          ←
-        </button>
-      )}
-
-      <div className="relative aspect-square overflow-hidden" style={{ background: 'var(--tg-theme-secondary-bg-color)' }}>
-        {imageUrl ? (
-          <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-7xl">🧣</div>
-        )}
+    <div className="pb-4">
+      <div className="relative">
+        <Gallery images={p.images} name={name} scrollTo={colorImageIndex >= 0 ? colorImageIndex : null} onOpen={setLightbox} />
+        <HeartButton productId={p.id} active={p.is_favorite} className="absolute right-4 top-4 h-11 w-11" />
       </div>
 
-      <div className="px-4 pt-4 space-y-4">
-        <div>
-          {product.category && (
-            <Badge variant="info" className="mb-2">{product.category}</Badge>
-          )}
-          <h1 className="text-xl font-bold leading-snug" style={{ color: 'var(--tg-theme-text-color)' }}>
-            {product.name}
-          </h1>
-        </div>
-
-        <div>
-          {inStock ? (
-            <Badge variant="success">✅ {t('product.in_stock')} · {t('product.stock_qty', { qty: product.stock_qty })}</Badge>
+      <div className="px-4 pt-4">
+        <h1 className="font-serif text-[28px] font-semibold leading-tight text-ink">{name}</h1>
+        <div className="mt-1.5 flex items-center gap-3">
+          {selected ? (
+            <span className="text-xl font-semibold text-rose-700">{money(selected.price)}</span>
           ) : (
-            <Badge variant="danger">❌ {t('product.out_of_stock')}</Badge>
+            <PriceLabel price={p.price} priceMax={p.price_max} className="text-xl" />
+          )}
+          {selected?.low_stock && (
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">{t('product.low_stock')}</span>
           )}
         </div>
-
-        <p className="text-2xl font-extrabold" style={{ color: 'var(--tg-theme-button-color)' }}>
-          {formatPrice(product.sell_price)}
-        </p>
 
         {colors.length > 0 && (
-          <div>
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--tg-theme-hint-color)' }}>
-              {t('product.color')}: <span style={{ color: 'var(--tg-theme-text-color)' }}>{selectedColor}</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setSelectedColor(color)}
-                  className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all active:scale-95"
-                  style={{
-                    background: selectedColor === color ? 'var(--tg-theme-button-color)' : 'var(--tg-theme-secondary-bg-color)',
-                    color: selectedColor === color ? 'var(--tg-theme-button-text-color)' : 'var(--tg-theme-text-color)',
-                  }}
-                >
-                  {color}
+          <div className="mt-5">
+            <h2 className="label">
+              {t('product.choose_color')}: <span className="text-ink">{localized(colors.find((c) => c.uz === color))}</span>
+            </h2>
+            <div className="flex flex-wrap gap-2.5">
+              {colors.map((c) => {
+                const available = p.variants.some((v) => v.color_uz === c.uz && v.in_stock)
+                const active = c.uz === color
+                return (
+                  <button
+                    key={c.uz}
+                    type="button"
+                    aria-label={localized(c)}
+                    aria-pressed={active}
+                    onClick={() => (haptic.select(), setColor(c.uz), setWantSelection(false))}
+                    className={`relative flex h-10 items-center gap-2 rounded-full border pl-1.5 pr-3.5 text-sm transition ${
+                      active ? 'border-rose-600 ring-1 ring-rose-600' : 'border-rose-200'
+                    } ${available ? 'bg-white' : 'bg-white/60 text-ink-faint'}`}
+                  >
+                    <span className="h-7 w-7 rounded-full border border-ink/10" style={{ background: c.hex || '#E8DED8' }} />
+                    {localized(c)}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {sizes.length > 0 && (
+          <div className="mt-5">
+            <div className="flex items-center justify-between">
+              <h2 className={`label ${wantSelection && !size ? 'text-red-700' : ''}`}>{t('product.choose_size')}</h2>
+              {p.size_chart && (
+                <button type="button" onClick={() => setGuideOpen(true)} className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-rose-700">
+                  <RulerIcon className="h-5 w-5" />
+                  {t('product.find_my_size')}
                 </button>
-              ))}
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sizes.map((s) => {
+                const v = variantFor(color, s)
+                const available = Boolean(v?.in_stock)
+                const active = s === size
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={!v}
+                    onClick={() => (haptic.select(), setSize(s), setWantSelection(false))}
+                    className={`h-11 min-w-[3.25rem] rounded-xl border px-3 text-sm font-semibold transition ${
+                      active
+                        ? 'border-rose-600 bg-rose-600 text-white'
+                        : available
+                          ? 'border-rose-200 bg-white text-ink'
+                          : 'border-rose-100 bg-white/50 text-ink-faint line-through'
+                    } disabled:opacity-40`}
+                  >
+                    {s}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
 
-        {inStock && (
-          <div>
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--tg-theme-hint-color)' }}>
-              {t('product.quantity')}
-            </p>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                disabled={qty <= 1}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold transition-all active:scale-90 disabled:opacity-40"
-                style={{ background: 'var(--tg-theme-secondary-bg-color)', color: 'var(--tg-theme-text-color)' }}
-              >
-                −
-              </button>
-              <span className="text-xl font-bold w-8 text-center" style={{ color: 'var(--tg-theme-text-color)' }}>
-                {qty}
-              </span>
-              <button
-                onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-                disabled={qty >= maxQty}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold transition-all active:scale-90 disabled:opacity-40"
-                style={{ background: 'var(--tg-theme-button-color)', color: 'var(--tg-theme-button-text-color)' }}
-              >
-                +
-              </button>
-              <span className="text-sm" style={{ color: 'var(--tg-theme-hint-color)' }}>max {maxQty}</span>
-            </div>
+        {selected && !selected.in_stock && <p className="mt-3 text-sm font-medium text-red-700">{t('product.out_of_stock')}</p>}
+
+        {description && (
+          <div className="mt-6">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-soft">{t('product.description')}</h2>
+            <p className="whitespace-pre-line leading-relaxed text-ink">{description}</p>
           </div>
         )}
 
-        {product.description && (
-          <div>
-            <p className="text-xs font-medium mb-1" style={{ color: 'var(--tg-theme-hint-color)' }}>
-              {t('product.description')}
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--tg-theme-text-color)' }}>
-              {product.description}
-            </p>
+        {p.size_chart && (
+          <div className="mt-6">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-soft">{t('product.size_chart')}</h2>
+            <SizeTable chart={p.size_chart} highlight={size} />
           </div>
         )}
+
+        <div className="mt-6 flex gap-3 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
+          <InfoIcon className="h-5 w-5 shrink-0" />
+          <p>{t('product.no_returns')}</p>
+        </div>
       </div>
 
-      <div
-        className="fixed bottom-16 left-0 right-0 px-4 pb-2 pt-3"
-        style={{ background: 'var(--tg-theme-bg-color)' }}
-      >
-        <Button fullWidth size="lg" disabled={!inStock || added || qty > maxQty} onClick={handleAdd}>
-          {added
-            ? t('product.added')
-            : inStock
-            ? `🛒 ${t('product.add_to_cart')} · ${formatPrice(parseFloat(product.sell_price) * qty)}`
-            : t('product.out_of_stock')}
-        </Button>
-      </div>
+      <StickyBar>
+        {inCart > 0 ? (
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={addToCart} disabled={!selected?.in_stock}>
+              + 1
+            </Button>
+            <Button className="flex-[3]" onClick={() => navigate('/cart')}>
+              <BagIcon className="h-5 w-5" />
+              {t('product.in_cart', { count: inCart })}
+            </Button>
+          </div>
+        ) : (
+          <Button className="w-full" onClick={addToCart} disabled={selected ? !selected.in_stock : !p.in_stock}>
+            <BagIcon className="h-5 w-5" />
+            {t('product.add_to_cart')}
+          </Button>
+        )}
+      </StickyBar>
+
+      {lightbox !== null && <Lightbox images={p.images} start={lightbox} onClose={() => setLightbox(null)} />}
+      {p.size_chart && (
+        <SizeGuide
+          chart={p.size_chart}
+          open={guideOpen}
+          onClose={() => setGuideOpen(false)}
+          onPick={(s) => sizes.includes(s) && setSize(s)}
+        />
+      )}
     </div>
   )
 }

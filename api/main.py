@@ -33,8 +33,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Misr Romol API",
-    description="REST API for the Misr Romol Telegram Mini App",
+    title="Mrs Romol API",
+    description="REST API for the Mrs Romol Telegram Mini App",
     version="3.0.0",
     lifespan=lifespan,
     # API docs only in development — no need to publish the API map in production.
@@ -43,13 +43,6 @@ app = FastAPI(
     openapi_url="/openapi.json" if DEV_MODE else None,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
-    allow_headers=["X-Telegram-Init-Data", "Content-Type"],
-)
 
 app.include_router(shop.router)
 app.include_router(admin_orders.router)
@@ -80,15 +73,33 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     return JSONResponse(status_code=exc.status_code, content={"error": str(exc.detail), "code": code, "detail": {}})
 
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error("Unhandled exception on %s: %s", request.url.path, exc, exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Internal server error", "code": "SERVER_ERROR", "detail": {}},
-    )
+@app.middleware("http")
+async def unhandled_errors(request: Request, call_next):
+    """
+    Last-resort error handler. It runs inside CORSMiddleware (unlike a FastAPI
+    `Exception` handler), so the browser still gets CORS headers and the Mini
+    App can show a real message instead of a network error.
+    """
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        logger.error("Unhandled exception on %s: %s", request.url.path, exc, exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "code": "SERVER_ERROR", "detail": {}},
+        )
+
+
+# Added last = outermost: every response, errors included, gets CORS headers.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
+    allow_headers=["X-Telegram-Init-Data", "Content-Type"],
+)
 
 
 @app.get("/health", tags=["health"])
 async def health() -> dict:
-    return {"status": "ok", "service": "misr-romol-api"}
+    return {"status": "ok", "service": "mrs-romol-api"}

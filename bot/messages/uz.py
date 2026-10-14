@@ -41,7 +41,7 @@ UZ = {
     # --- Welcome ---
     "welcome": (
         "👋 Assalomu alaykum, {name}!\n\n"
-        "🏭 <b>Misr Romol</b> — Misrning sifatli to'qimachilik mahsulotlari do'koniga xush kelibsiz!\n"
+        "🏭 <b>Mrs Romol</b> — Misrning sifatli to'qimachilik mahsulotlari do'koniga xush kelibsiz!\n"
         "Biz Misrdan import qilingan eng yaxshi gazlamalar va ro'mollarni taklif qilamiz."
     ),
     "welcome_back": "👋 Xush kelibsiz, {name}! Siz uchun nima qila olaman?",

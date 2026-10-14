@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════════════════════
--- Misr Romol — database schema (v1)
+-- Mrs Romol — database schema (v1)
 --
 -- For a NEW, empty Supabase project:
 --   Dashboard → SQL Editor → New query → paste this whole file → Run.

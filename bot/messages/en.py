@@ -41,7 +41,7 @@ EN = {
     # --- Welcome ---
     "welcome": (
         "👋 Welcome, {name}!\n\n"
-        "🏭 <b>Misr Romol</b> — your destination for premium Egyptian textile products!\n"
+        "🏭 <b>Mrs Romol</b> — your destination for premium Egyptian textile products!\n"
         "We offer the finest fabrics and scarves imported directly from Egypt."
     ),
     "welcome_back": "👋 Welcome back, {name}! How can I help you?",

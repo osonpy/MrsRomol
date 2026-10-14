@@ -187,6 +187,7 @@ async def create_order(body: CreateOrderRequest, background: BackgroundTasks, cu
     })
     order = await load_order(created["id"])
     shaped = await shape_order(order)
+    shaped["payment_cards"] = await _payment_cards()  # the app goes straight to payment
 
     # Remember contact details for the next checkout.
     profile: dict[str, Any] = {}

@@ -356,3 +356,41 @@ def test_delete_image_and_product_removes_files(wife, ali, fakes):
     assert wife.delete(f"/admin/products/{S['prod']}").status_code == 204
     items = ali.get(f"/orders/{S['order']}").json()["items"]
     assert {i["name_uz"] for i in items} == {"Ipak ro'mol"} and items[0]["image"] is None
+
+
+# ── failures stay readable for the Mini App ───────────────────────────────────
+
+ORIGIN = {"Origin": "https://app.test"}
+
+
+def test_storage_failure_is_a_clean_502_with_cors(ali, wife, monkeypatch):
+    import api.storage
+    from types import SimpleNamespace
+
+    class Broken:
+        async def upload(self, *a, **k):
+            raise RuntimeError("storage down")
+
+    r = wife.post("/admin/products", json={"name_uz": "Sinov", "price": 1000})
+    assert r.status_code == 201, r.text
+    pid = r.json()["id"]
+    v = wife.post(f"/admin/products/{pid}/variants", json={"size": "M", "stock": 3}).json()["variants"][0]["id"]
+    o = ali.post("/orders", json={"items": [{"variant_id": v, "quantity": 1}], "delivery": DELIVERY}).json()
+
+    monkeypatch.setattr(api.storage, "db", lambda: SimpleNamespace(storage=SimpleNamespace(from_=lambda _: Broken())))
+    r = ali.post(f"/orders/{o['id']}/payment", files={"receipt": ("r.jpg", JPEG, "image/jpeg")}, headers=ORIGIN)
+    assert r.status_code == 502 and r.json()["code"] == "STORAGE_ERROR"
+    assert r.headers["access-control-allow-origin"] == "https://app.test"
+    assert ali.get(f"/orders/{o['id']}").json()["status"] == "awaiting_payment"  # nothing half-done
+
+
+def test_unexpected_error_is_json_500_with_cors(ali, monkeypatch):
+    import api.routers.shop
+
+    async def boom():
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(api.routers.shop, "_settings", boom)
+    r = ali.get("/meta", headers=ORIGIN)
+    assert r.status_code == 500 and r.json()["code"] == "SERVER_ERROR"
+    assert r.headers["access-control-allow-origin"] == "https://app.test"

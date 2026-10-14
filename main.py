@@ -73,7 +73,7 @@ async def main() -> None:
     dp.include_router(start.router)       # /start, Mini App button
     dp.include_router(_fallback_router)   # catch-all — must be LAST
 
-    logger.info("🤖 Misr Romol Bot starting...")
+    logger.info("🤖 Mrs Romol Bot starting...")
 
     # Drop any pending updates accumulated while the bot was offline
     await bot.delete_webhook(drop_pending_updates=True)

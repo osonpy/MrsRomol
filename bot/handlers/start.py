@@ -21,9 +21,9 @@ async def cmd_start(message: Message) -> None:
     lang = message.from_user.language_code or "uz"
 
     greetings = {
-        "uz": f"Assalomu alaykum, {name}! 👋\n\nMisr Romol do'koniga xush kelibsiz. 🧣\nQuyidagi tugma orqali do'konni oching:",
-        "ru": f"Привет, {name}! 👋\n\nДобро пожаловать в магазин Misr Romol. 🧣\nОткройте магазин по кнопке ниже:",
-        "en": f"Hello, {name}! 👋\n\nWelcome to Misr Romol store. 🧣\nOpen the shop using the button below:",
+        "uz": f"Assalomu alaykum, {name}! 👋\n\nMrs Romol do'koniga xush kelibsiz. 🧣\nQuyidagi tugma orqali do'konni oching:",
+        "ru": f"Привет, {name}! 👋\n\nДобро пожаловать в магазин Mrs Romol. 🧣\nОткройте магазин по кнопке ниже:",
+        "en": f"Hello, {name}! 👋\n\nWelcome to Mrs Romol store. 🧣\nOpen the shop using the button below:",
     }
     text = greetings.get(lang[:2], greetings["uz"])
 

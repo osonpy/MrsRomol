@@ -5,6 +5,64 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 3-bosqich — Mini App: xaridor qismi (2026-10-14)
+
+Mini App **noldan qayta yozildi** (eski kod butunlay olib tashlandi). Brend nomi kelishuvga ko'ra **Mrs Romol**.
+
+### Dizayn
+- **Ranglar** logotipdan olindi (`brand/MrsRomol.png`): krem fon `#FAF9F5`, rose-gold `#986456` (asosiy), `#C29786`, `#E4B4A0` va pushti `#EED3C8`. Matn va tugmalar kontrasti WCAG AA talabiga javob beradi.
+- **Shriftlar:** sarlavhalar uchun Cormorant Garamond (logotipga mos nafis serif), matn uchun Manrope. Ikkalasi lotin, o'zbek va kirill harflarini qo'llab-quvvatlaydi. Shriftlar ilova bilan birga yuklanadi, tashqi xizmatga bog'liq emas.
+- **Logotip:** `brand/make_assets.py` skripti asl logotipdan fonsiz versiya, sarlavha logotipi (53 KB), 512px ikonka va favicon yasaydi. AI generator qoldirgan ✦ belgisi olib tashlangan.
+- **Telegram bilan integratsiya:**
+  - Sarlavha va fon ranglari ilovaga moslanadi.
+  - Telegram'ning "Orqaga" tugmasi ishlaydi.
+  - Bosganda tebranish (haptic) bor.
+  - Pastga surilganda ilova yopilib ketmaydi.
+  - Telefon raqamini bir bosishda olish va joylashuvni yuborish mumkin.
+  - Bildirishnomadagi tugma kerakli buyurtmani to'g'ridan-to'g'ri ochadi (`startapp`).
+
+### Sahifalar
+| Sahifa | Imkoniyatlar |
+|---|---|
+| **Katalog** | Logotip, qidiruv (yozib bo'lgach avtomatik), kategoriyalar, filtr (saralash, o'lcham, narx), cheksiz aylantirish, "Yangi" va "Tugagan" belgilari, rang nuqtalari. Filtrlar manzilda saqlanadi, mahsulotdan qaytilganda ro'yxat joyida qoladi |
+| **Mahsulot** | Surib ko'riladigan galereya va to'liq ekran; rang tanlanganda o'sha rang rasmi chiqadi; tugagan o'lchamlar o'chirilgan ko'rinadi; "Kam qoldi" belgisi; o'lchamlar jadvali; **"O'lchamimni aniqlash"** (o'lchovlar kiritiladi, mos o'lcham tavsiya qilinadi va bir bosishda tanlanadi); "qaytarilmaydi" ogohlantirishi |
+| **Savat** | Narxlar serverdan qayta hisoblanadi; "Faqat N dona qoldi" ogohlantirishi va "N taga o'zgartirish" tugmasi; sotuvdan olingan mahsulot belgilanadi; promokod; yetkazish narxi alohida ekani eslatiladi |
+| **Rasmiylashtirish** | Ism va telefon (Telegram'dan olish mumkin); viloyat (Toshkent bo'lsa taksi, viloyatlarga pochta yoki BTS avtomatik); manzil; joylashuv; izoh; ikki rozilik ("yetkazishni o'zim to'layman", "qaytarilmaydi"); 30 daqiqalik bron haqida eslatma. Oxirgi manzil keyingi xaridda avtomatik to'ldiriladi |
+| **Buyurtma** | 5 bosqichli holat chizig'i; to'lov taymeri; summani va karta raqamini bir bosishda nusxalash; karta tanlash; chek rasmini oldindan ko'rish va yuborish; trek raqami; bekor qilish |
+| **Buyurtmalarim, Sevimlilar, Profil** | Profilda til (o'zbekcha yoki ruscha, saqlanadi), yangi mahsulot xabarlariga obuna, qoidalar, admin uchun "Admin panel" kirish joyi (panelning o'zi 4-bosqichda) |
+
+Har bir sahifada yuklanish (skeleton), bo'sh holat va xato holati (qayta urinish tugmasi bilan) bor. API xato kodlari foydalanuvchiga tushunarli tilda ko'rsatiladi.
+
+### Brauzerdagi to'liq test (yangi)
+- `e2e/demo_stack.sh` namunaviy do'kon ko'taradi: 4 kategoriya, 6 mahsulot, ranglar, o'lchamlar, rasmlar, kartalar va promokod.
+- `e2e/walk.mjs` headless Chrome'da (telefon o'lchamida) xaridor yo'lini boshdan-oxir o'tadi: katalog → mahsulot → o'lcham yordamchisi → savat → promokod → rasmiylashtirish → buyurtma → chek yuklash → buyurtmalar → sevimlilar → profil → rus tili → qidiruv. Har bir qadamni skrinshot qiladi va konsol yoki tarmoq xatolarini tekshiradi.
+- Natija: **17 ta qadam, muammo topilmadi.** Skrinshotlar ko'z bilan ham tekshirildi.
+
+### Testlar paytida topilgan va tuzatilgan muammolar
+| Muammo | Tuzatish |
+|---|---|
+| Filtr oynasidagi `useEffect` noto'g'ri qiymat qaytarib, katalogni buzardi | Tuzatildi; boshqa joylarda bunday holat qolmaganini tekshirdim |
+| Saqlangan til ruscha bo'lsa ham pastki menyu o'zbekcha qolardi (birinchi til o'zgarishi yo'qolardi) | Profil tili sahifalar chizilishidan oldin o'rnatiladi. Brauzerda tekshirildi |
+| "Buyurtma #1001" "#IOOI" bo'lib o'qilardi (serif shriftning eski uslubdagi raqamlari) | Raqamlar oddiy shriftda ko'rsatiladi |
+| Yangi buyurtmadan keyin hech bir to'lov kartasi tanlanmagan bo'lardi | Kartalar buyurtma javobiga qo'shildi, birinchi karta avtomatik tanlanadi |
+| Storage xatosi ishlov berilmagan 500'ga aylanardi; 500 javobida CORS sarlavhasi yo'qligi uchun ilova "internet yo'q" deb ko'rsatardi | Storage xatosi aniq `STORAGE_ERROR` (502) qaytaradi; oxirgi chiziqdagi xato ishlovchi CORS ichiga ko'chirildi. 2 ta yangi API testi qo'shildi |
+| **ESLint 0-bosqichdan beri ishlamagan** (konfiguratsiya o'rnatilgan plagin versiyasiga mos emas edi). 0-bosqichda "lint xatosiz" deb yozganim noto'g'ri edi: chiqishni filtrlaganim uchun xato ko'rinmay qolgan | Konfiguratsiya tuzatildi, lint endi haqiqatan ishlaydi va toza |
+
+### Boshqa
+- Eski "Misr Romol" nomi hamma joyda **Mrs Romol** ga almashtirildi (bot salomlashuvi, API, hujjatlar).
+- `axios` va `@twa-dev/sdk` olib tashlandi. TanStack Query va shriftlar qo'shildi.
+
+### Tekshiruv
+- API 26/26 (avval 24 edi, xato holatlari uchun 2 ta test qo'shildi), baza 47/47.
+- Mini App: build va lint toza; asosiy JS 116 KB (gzip), sahifalar alohida yuklanadi.
+- Brauzer testi: 17 qadam, muammo yo'q.
+
+### Hozirgi holat
+- Admin panel kirish joyi bor, lekin panelning o'zi hali yo'q, u **4-bosqich**da quriladi. Hozircha mahsulot qo'shish uchun API kerak (yoki 4-bosqichni kutish).
+- Mini App hali internetga chiqarilmagan (deploy 6-bosqichda).
+
+---
+
 ## 2-bosqich — Yangi API (2026-10-14)
 
 API yangi bazaga moslab qayta yozildi. Eski endpointlar o'chirildi, chunki eski Mini App 3-bosqichda yangisi bilan almashtiriladi.

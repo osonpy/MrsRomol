@@ -29,6 +29,15 @@ _RECEIPT_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
 Image.MAX_IMAGE_PIXELS = 50_000_000  # refuse decompression bombs
 
 
+async def _upload(bucket, path: str, data: bytes, options: dict) -> None:
+    """Upload, turning any storage failure into a clean 502 for the client."""
+    try:
+        await bucket.upload(path, data, options)
+    except Exception as e:
+        logger.error("Storage upload %s failed: %s", path, e)
+        raise AppError(502, "STORAGE_ERROR", "Could not store the file, please try again") from e
+
+
 # ── product images ────────────────────────────────────────────────────────────
 
 def product_image_urls(storage_path: str) -> dict[str, str]:
@@ -62,7 +71,7 @@ async def upload_product_image(product_id: str, data: bytes) -> str:
     bucket = db().storage.from_(PRODUCT_IMAGES_BUCKET)
     for name, body in ((f"{path}.webp", large), (f"{path}_thumb.webp", thumb)):
         # Fresh dict each time: storage3 pops "cache-control" out of the options.
-        await bucket.upload(name, body, {"content-type": "image/webp", "cache-control": "31536000"})
+        await _upload(bucket, name, body, {"content-type": "image/webp", "cache-control": "31536000"})
     return path
 
 
@@ -99,7 +108,7 @@ async def upload_receipt(order_id: str, content_type: str, data: bytes) -> str:
         raise validation("File content does not match its type")
     day = datetime.now(timezone.utc).strftime("%Y%m%d")
     path = f"{day}/{order_id}/{uuid.uuid4().hex}.{_RECEIPT_TYPES[content_type]}"
-    await db().storage.from_(RECEIPTS_BUCKET).upload(path, data, {"content-type": content_type})
+    await _upload(db().storage.from_(RECEIPTS_BUCKET), path, data, {"content-type": content_type})
     return path
 
 

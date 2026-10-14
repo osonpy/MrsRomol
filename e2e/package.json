@@ -1,0 +1,9 @@
+{
+  "name": "mrs-romol-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser walk-through of the Mini App against the local demo stack",
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}

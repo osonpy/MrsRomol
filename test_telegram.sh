@@ -10,7 +10,7 @@ mkdir -p "$LOG_DIR"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║   Misr Romol — Telegram Test Rejimi                 ║"
+echo "║   Mrs Romol — Telegram Test Rejimi                 ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 

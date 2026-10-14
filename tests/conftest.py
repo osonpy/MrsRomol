@@ -35,6 +35,7 @@ os.environ.update(
     SUPABASE_URL="http://localhost:54329",
     SUPABASE_KEY=_jwt(os.environ.get("TEST_JWT_SECRET", "x" * 40)),
     MINI_APP_URL="https://app.test",
+    ALLOWED_ORIGINS="https://app.test",
     MINI_APP_LINK="https://t.me/TestBot/shop",
     DEV_MODE="false",
     EXPIRY_CHECK_INTERVAL="3600",

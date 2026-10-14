@@ -1,110 +1,129 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import './i18n'
-import { useTelegram } from './hooks/useTelegram'
-import { useUserStore } from './store/userStore'
-import { customersApi } from './api/customers'
-import { BottomNav } from './components/layout/BottomNav'
-import { Spinner } from './components/ui/Spinner'
+import { useTranslation } from 'react-i18next'
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+  ScrollRestoration,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
+import { TabLayout } from './components/layout'
+import { Button, ErrorState, Spinner, Toaster } from './components/ui'
+import { useMeta } from './hooks/queries'
+import { backButton, startParam } from './lib/telegram'
+import CatalogPage from './pages/CatalogPage'
 
-const CatalogPage = lazy(() => import('./pages/CatalogPage'))
-const ProductPage  = lazy(() => import('./pages/ProductPage'))
-const CartPage     = lazy(() => import('./pages/CartPage'))
-const OrdersPage   = lazy(() => import('./pages/OrdersPage'))
-const ProfilePage  = lazy(() => import('./pages/ProfilePage'))
+const ProductPage = lazy(() => import('./pages/ProductPage'))
+const FavoritesPage = lazy(() => import('./pages/FavoritesPage'))
+const CartPage = lazy(() => import('./pages/CartPage'))
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'))
+const OrdersPage = lazy(() => import('./pages/OrdersPage'))
+const OrderPage = lazy(() => import('./pages/OrderPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const AdminSoonPage = lazy(() => import('./pages/AdminSoonPage'))
 
-if (import.meta.env.DEV && !window.Telegram?.WebApp) {
-  window.Telegram = {
-    WebApp: {
-      initData: 'mock_init_data_for_dev',
-      initDataUnsafe: {
-        user: {
-          id: 123456789,
-          first_name: 'Test',
-          last_name: 'User',
-          username: 'testuser',
-          language_code: 'uz',
-        },
-      },
-      colorScheme: 'light',
-      themeParams: {},
-      ready: () => {},
-      expand: () => {},
-      setHeaderColor: () => {},
-      MainButton: { show: () => {}, hide: () => {}, setText: () => {}, onClick: () => {}, offClick: () => {} },
-      BackButton:  { show: () => {}, hide: () => {}, onClick: () => {}, offClick: () => {} },
-    },
-  }
+const TAB_PATHS = ['/', '/favorites', '/cart', '/orders', '/profile']
+
+// Telegram's native Back button on every page that is not a main tab.
+function BackButtonController() {
+  const { pathname, key } = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (TAB_PATHS.includes(pathname)) return
+    // Opened straight on a deep link (from a notification): there is no
+    // history to go back to, so go to the catalogue instead.
+    const canGoBack = key !== 'default'
+    return backButton.show(() => (canGoBack ? navigate(-1) : navigate('/', { replace: true })))
+  }, [pathname, key, navigate])
+  return null
+}
+
+// Notification buttons open the app with ?startapp=order_<id>.
+function startRoute() {
+  const m = /^(admin_)?order_([0-9a-f-]{36})$/.exec(startParam)
+  if (!m) return null
+  return m[1] ? `/admin/orders/${m[2]}` : `/orders/${m[2]}`
 }
 
 function PageFallback() {
   return (
-    <div className="flex items-center justify-center min-h-screen" style={{ color: 'var(--tg-theme-hint-color)' }}>
-      <Spinner size="lg" />
+    <div className="flex min-h-[60vh] items-center justify-center text-rose-400">
+      <Spinner />
     </div>
   )
 }
 
-export default function App() {
-  const { tg, user } = useTelegram()
-  const { setTelegramUser, setCustomer, setLoading } = useUserStore()
-
-  useEffect(() => {
-    const themeParams = tg?.themeParams
-    if (!themeParams || Object.keys(themeParams).length === 0) return
-    const root = document.documentElement
-    const map = {
-      bg_color:           '--tg-theme-bg-color',
-      text_color:         '--tg-theme-text-color',
-      hint_color:         '--tg-theme-hint-color',
-      link_color:         '--tg-theme-link-color',
-      button_color:       '--tg-theme-button-color',
-      button_text_color:  '--tg-theme-button-text-color',
-      secondary_bg_color: '--tg-theme-secondary-bg-color',
-    }
-    Object.entries(map).forEach(([tgKey, cssVar]) => {
-      if (themeParams[tgKey]) root.style.setProperty(cssVar, themeParams[tgKey])
-    })
-  }, [tg])
-
-  useEffect(() => {
-    if (!user) return
-    setTelegramUser(user)
-    setLoading(true)
-
-    const lang = ['uz', 'ru', 'en'].includes(user.language_code) ? user.language_code : 'uz'
-
-    customersApi
-      .register({
-        telegram_id: String(user.id),
-        full_name: [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User',
-        phone: '',
-        language: lang,
-      })
-      .then((customer) => {
-        setCustomer(customer)
-        import('./i18n').then(({ default: i18n }) => i18n.changeLanguage(customer.language))
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [user?.id])
-
+function Splash() {
   return (
-    <BrowserRouter>
-      <div className="flex flex-col min-h-dvh" style={{ background: 'var(--tg-theme-bg-color)' }}>
-        <main className="flex-1 overflow-hidden">
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
-              <Route path="/"            element={<CatalogPage />} />
-              <Route path="/product/:id" element={<ProductPage />} />
-              <Route path="/cart"        element={<CartPage />} />
-              <Route path="/orders"      element={<OrdersPage />} />
-              <Route path="/profile"     element={<ProfilePage />} />
-            </Routes>
-          </Suspense>
-        </main>
-        <BottomNav />
-      </div>
-    </BrowserRouter>
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-10">
+      <img src="/logo.webp" alt="Mrs Romol" className="w-64 animate-fade-in" />
+      <Spinner className="h-6 w-6 text-rose-400" />
+    </div>
   )
+}
+
+function Root() {
+  const meta = useMeta()
+
+  if (meta.isPending) return <Splash />
+  if (meta.isError) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center">
+        <img src="/logo.webp" alt="Mrs Romol" className="w-56" />
+        <ErrorState error={meta.error} onRetry={() => meta.refetch()} />
+      </div>
+    )
+  }
+  return (
+    <>
+      <BackButtonController />
+      <ScrollRestoration />
+      <Toaster />
+      <Suspense fallback={<PageFallback />}>
+        <Outlet />
+      </Suspense>
+    </>
+  )
+}
+
+function NotFound() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-8 text-center">
+      <p className="font-serif text-2xl">{t('not_found')}</p>
+      <Button variant="outline" onClick={() => navigate('/', { replace: true })}>
+        {t('common.back_home')}
+      </Button>
+    </div>
+  )
+}
+
+const router = createBrowserRouter([
+  {
+    element: <Root />,
+    children: [
+      {
+        element: <TabLayout />,
+        children: [
+          { index: true, element: startRoute() ? <Navigate to={startRoute()} replace /> : <CatalogPage /> },
+          { path: 'favorites', element: <FavoritesPage /> },
+          { path: 'cart', element: <CartPage /> },
+          { path: 'orders', element: <OrdersPage /> },
+          { path: 'profile', element: <ProfilePage /> },
+        ],
+      },
+      { path: 'product/:id', element: <ProductPage /> },
+      { path: 'checkout', element: <CheckoutPage /> },
+      { path: 'orders/:id', element: <OrderPage /> },
+      { path: 'admin/*', element: <AdminSoonPage /> },
+      { path: '*', element: <NotFound /> },
+    ],
+  },
+])
+
+export default function App() {
+  return <RouterProvider router={router} />
 }
