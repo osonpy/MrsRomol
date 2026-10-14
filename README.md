@@ -40,7 +40,11 @@ uv run python main.py                              # bot
 cd miniapp && npm install && npm run dev           # Mini App → http://localhost:5173
 ```
 
-Telegram ichida sinash uchun: `bash test_telegram.sh` (Cloudflare tunnel ochadi).
+Telegram ichida sinash (domensiz, vaqtinchalik HTTPS tunnel bilan):
+- `bash test_telegram.sh` — demo mahsulotlar bilan
+- `bash test_telegram.sh real` — sizning Supabase bazangiz bilan
+
+Keyin botga `/start` yozib, "Do'konni ochish" ni bosing. Ctrl+C — to'xtatish.
 
 ## VPS'ga deploy (Docker)
 

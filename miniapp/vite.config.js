@@ -6,6 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // Telegram testing through Cloudflare quick tunnels (test_telegram.sh).
+    allowedHosts: ['.trycloudflare.com'],
   },
   build: {
     outDir: 'dist',
