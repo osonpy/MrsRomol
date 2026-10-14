@@ -1,13 +1,12 @@
 // Walks the customer journey in headless Chrome and saves a screenshot of every
 // step. Usage: node walk.mjs <output dir>   (needs e2e/demo_stack.sh + API + Mini App)
-import { mkdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 import puppeteer from 'puppeteer-core'
 const OUT = process.argv[2] || '../.demo/shots'
 mkdirSync(OUT, { recursive: true })
-// Smallest valid JPEG header is enough: the demo storage accepts any upload.
-const RECEIPT = join(OUT, 'receipt.jpg')
-writeFileSync(RECEIPT, Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...new Array(64).fill(0)]))
+// Any real image works as a "receipt" (demo_stack.sh generates these).
+const RECEIPT = resolve('../.demo/storage/product-images/demo/white0.webp')
 const CHROME = process.env.CHROME || '/usr/bin/google-chrome'
 const BASE = 'http://localhost:5173'
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--lang=uz'] })

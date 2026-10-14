@@ -11,8 +11,9 @@ const STATUS_STYLE = {
   cancelled: 'bg-stone-100 text-stone-600 ring-stone-200',
 }
 
-export function StatusBadge({ status }) {
-  const { t } = useTranslation()
+// lng: force a language (the admin section is always Uzbek).
+export function StatusBadge({ status, lng }) {
+  const { t } = useTranslation(undefined, lng ? { lng } : undefined)
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLE[status]}`}>
       {t(`order.status.${status}`)}

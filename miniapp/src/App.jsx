@@ -22,9 +22,16 @@ const CheckoutPage = lazy(() => import('./pages/CheckoutPage'))
 const OrdersPage = lazy(() => import('./pages/OrdersPage'))
 const OrderPage = lazy(() => import('./pages/OrderPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
-const AdminSoonPage = lazy(() => import('./pages/AdminSoonPage'))
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
+const AdminDashboard = lazy(() => import('./pages/admin/DashboardPage'))
+const AdminOrders = lazy(() => import('./pages/admin/OrdersPage'))
+const AdminOrder = lazy(() => import('./pages/admin/OrderPage'))
+const AdminProducts = lazy(() => import('./pages/admin/ProductsPage'))
+const AdminProductEdit = lazy(() => import('./pages/admin/ProductEditPage'))
+const AdminMore = lazy(() => import('./pages/admin/MorePage'))
 
-const TAB_PATHS = ['/', '/favorites', '/cart', '/orders', '/profile']
+// Main sections: no Back button there.
+const TAB_PATHS = ['/', '/favorites', '/cart', '/orders', '/profile', '/admin', '/admin/orders', '/admin/products', '/admin/more']
 
 // Telegram's native Back button on every page that is not a main tab.
 function BackButtonController() {
@@ -118,7 +125,18 @@ const router = createBrowserRouter([
       { path: 'product/:id', element: <ProductPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'orders/:id', element: <OrderPage /> },
-      { path: 'admin/*', element: <AdminSoonPage /> },
+      {
+        path: 'admin',
+        element: <AdminLayout />,
+        children: [
+          { index: true, element: <AdminDashboard /> },
+          { path: 'orders', element: <AdminOrders /> },
+          { path: 'orders/:id', element: <AdminOrder /> },
+          { path: 'products', element: <AdminProducts /> },
+          { path: 'products/:id', element: <AdminProductEdit /> },
+          { path: 'more', element: <AdminMore /> },
+        ],
+      },
       { path: '*', element: <NotFound /> },
     ],
   },

@@ -2,9 +2,10 @@ import i18n from '../i18n'
 
 const NBSP = ' '
 
-export function money(amount) {
+export function money(amount, lng) {
   const n = Math.round(Number(amount) || 0)
-  return `${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, NBSP)}${NBSP}${i18n.t('common.currency')}`
+  const currency = i18n.t('common.currency', lng ? { lng } : undefined)
+  return `${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, NBSP)}${NBSP}${currency}`
 }
 
 // Localised field: pick(product, 'name') → product.name_ru for Russian users,
@@ -26,10 +27,10 @@ const MONTHS = {
   ru: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
 }
 
-export function dateTime(iso) {
+export function dateTime(iso, lng) {
   if (!iso) return ''
   const d = new Date(iso)
-  const lang = i18n.language === 'ru' ? 'ru' : 'uz'
+  const lang = (lng || i18n.language) === 'ru' ? 'ru' : 'uz'
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
   return `${d.getDate()} ${MONTHS[lang][d.getMonth()]}, ${hh}:${mm}`
