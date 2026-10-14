@@ -5,6 +5,87 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 2-bosqich — Yangi API (2026-10-14)
+
+API yangi bazaga moslab qayta yozildi. Eski endpointlar o'chirildi, chunki eski Mini App 3-bosqichda yangisi bilan almashtiriladi.
+
+### Endpointlar
+
+**Xaridor** (Telegram `initData` bilan, birinchi kirishda mijoz avtomatik yaratiladi):
+
+| Endpoint | Vazifa |
+|---|---|
+| `GET /meta` | Ilova ochilganda kerak bo'ladigan hamma narsa: profil, kategoriyalar, hududlar, yetkazish usullari, bron muddati, qoidalar |
+| `GET/PATCH /me` | Profil: ism, telefon, til, yangi mahsulot xabarlariga obuna |
+| `GET /products` | Katalog: qidiruv, kategoriya, narx oralig'i, o'lcham, rang, saralash, sahifalash |
+| `GET /products/{id}` | Mahsulot: rasmlar, variantlar, o'lcham jadvali |
+| `GET/PUT/DELETE /favorites` | Sevimlilar |
+| `POST /cart/quote` | Savat hisobi: joriy narxlar, qoldiq muammolari, promokod tekshiruvi |
+| `POST /orders`, `GET /orders`, `GET /orders/{id}` | Buyurtma berish va ko'rish |
+| `POST /orders/{id}/cancel` | To'lovgacha bekor qilish |
+| `GET /payment-cards`, `POST /orders/{id}/payment` | Karta tanlash va chek yuklash |
+
+**Admin** (`admin` yoki `super_admin` roli):
+
+| Endpoint | Vazifa |
+|---|---|
+| `GET /admin/dashboard` | Bugungi buyurtmalar va tushum, tekshirilishi kerak bo'lgan to'lovlar, yuborilishi kerak bo'lgan buyurtmalar, tugayotgan mahsulotlar |
+| `/admin/orders` | Ro'yxat (holat filtri, raqam yoki telefon bo'yicha qidiruv), batafsil ko'rinish (chek havolasi bilan), izoh |
+| `POST /admin/payments/{id}/review` | To'lovni tasdiqlash yoki rad etish (rad etishda sabab majburiy) |
+| `POST /admin/orders/{id}/advance` | Yuborildi (trek raqami bilan) va yetkazildi |
+| `POST /admin/orders/{id}/cancel` | Bekor qilish |
+| `/admin/categories`, `/admin/products`, `/admin/variants`, `/admin/images` | Katalogni to'liq boshqarish, 5 tagacha rasm, tartibini o'zgartirish |
+| `/admin/promo-codes` | Promokodlar |
+| `/admin/payment-cards`, `/admin/settings`, `/admin/staff` | **Faqat super admin**: kartalar, sozlamalar, adminlarni tayinlash |
+
+### Asosiy o'zgarishlar
+- **Rollar:** do'kon egasi `.env` dagi `SUPER_ADMIN_IDS` orqali aniqlanadi. Boshqa adminlarni super admin tayinlaydi. Admin API endi Telegram orqali shaxsga bog'langan, shuning uchun har bir harakat kim qilgani bilan yoziladi. Eski umumiy `ADMIN_SECRET_KEY` kerak emas, olib tashlandi.
+- **Async baza klienti:** 0-bosqichdan qolgan muammo hal qilindi, endi baza so'rovlari serverni bloklamaydi.
+- **Bazadagi funksiyalar:** buyurtma, to'lov va bekor qilish 1-bosqichdagi atomar funksiyalar orqali ishlaydi. API ularning xato kodlarini (`OUT_OF_STOCK`, `ALREADY_REVIEWED`…) aniq HTTP javobga aylantiradi.
+- **Muddati o'tgan buyurtmalar** har daqiqada avtomatik bekor qilinadi va mijozga xabar boradi.
+- **Mahsulot rasmlari** yuklanganda WebP formatiga o'tkaziladi va ikki o'lchamda saqlanadi: 1600px (mahsulot sahifasi) va 600px (katalog). EXIF ma'lumotlari, jumladan GPS joylashuvi, olib tashlanadi. Rasmlar 1 yil keshlanadi.
+- **Cheklar** yopiq bucket'da saqlanadi. Admin faqat 1 soatlik vaqtinchalik havola bilan ko'radi. Fayl turi ichidagi baytlar bo'yicha ham tekshiriladi.
+- **Xabarnomalar** o'zbek va rus tilida, har bir holat o'zgarishida yuboriladi. Xabarda "Buyurtmani ko'rish" tugmasi bor. Guruh chatlarida Mini App havolasi ishlatiladi (`MINI_APP_LINK`), chunki Telegram guruhlarda `web_app` tugmasiga ruxsat bermaydi.
+- **Mijozga** aniq qoldiq va tannarx ko'rsatilmaydi, faqat "bor" va "kam qoldi" belgilari.
+- **Validatsiya:** hudud va yetkazish usuli mosligi tekshiriladi (Toshkent shahri uchun taksi, viloyatlar uchun pochta yoki BTS). Telefon, karta raqami va promokod formatlari ham tekshiriladi.
+
+### Testlar paytida topilgan va tuzatilgan muammolar
+| Muammo | Tuzatish |
+|---|---|
+| "romol" deb qidirilsa "Ro'mol" topilmasdi (o'zbekcha tutuq belgisi `'`, `‘`, `ʻ`, `` ` ``) | Bazada `search_text` ustuni (kichik harf, tutuq belgisiz) + trigram indeks. Endi barcha yozilish shakllari topiladi |
+| Telefon bo'shliqlar bilan saqlanardi: admin `12345` deb qidirsa topilmasdi | Telefon bitta formatda saqlanadi: `+998901234567` (9 xonali raqamga `+998` avtomatik qo'shiladi) |
+| Kichik rasm (thumbnail) keshlanmasdi | Sabab: `storage3` kutubxonasi berilgan sozlamani o'zgartirib yuborardi. Har bir yuklashga alohida sozlama beriladi. Haqiqiy Supabase'da tekshirildi |
+
+### Bot
+- Botning admin qismi (`/pending`, `/setphotos`, tasdiqlash tugmalari) **olib tashlandi**, chunki u eski sxema bilan ishlardi va yangi bazada xato berardi. Admin ishlari endi Mini App'da bajariladi, botdagi tezkor tugmalar esa 5-bosqichda yangidan qo'shiladi.
+- `/start` va Mini App tugmasi ishlaydi.
+
+### Testlar
+- **`tests/run.sh`**: Docker'da Postgres va PostgREST (Supabase ichidagi REST qatlami) ko'tariladi, API'ga **24 ta boshdan-oxir test** yuboriladi. Hammasi o'tdi:
+  - Rollar va ruxsatlar.
+  - Katalog va filtrlar (6 xil yozilishdagi qidiruv).
+  - Rasm yuklash va WebP.
+  - Savat va promokod.
+  - Buyurtma, chek, tasdiqlash, yuborish, yetkazish.
+  - Ikki marta tasdiqlashni bloklash.
+  - Muddat o'tishi va qoldiq qaytishi.
+  - Rad etish.
+  - Begona buyurtmani ko'ra olmaslik.
+  - Mahsulot o'chirilsa ham eski buyurtma saqlanishi.
+- **Haqiqiy Supabase Storage**: rasm yuklash, ochiq havola, keshlash, chekning faqat vaqtinchalik havola bilan ochilishi tekshirildi. Test fayllari o'chirildi.
+- `db/tests/run.sh`: 47 ta baza testi `search_text` qo'shilgandan keyin ham o'tdi.
+- Docker image Pillow (WebP) bilan yig'iladi.
+
+### Muhim: hozirgi holat
+- **Eski Mini App yangi API bilan ishlamaydi.** 3-bosqichda yangisi quriladi.
+
+### Egasi qilishi kerak
+1. Supabase → SQL Editor → `db/migrations/002_product_search_text.sql` → Run.
+2. `.env` ga `SUPER_ADMIN_IDS=<sizning Telegram ID>` qo'shing, aks holda admin bo'limiga hech kim kira olmaydi.
+3. `.env` dagi `ADMIN_SECRET_KEY`, `INTERNAL_SECRET`, `ADMIN_USER_IDS`, `PAYMENT_CARD`, `RECEIPTS_BUCKET` endi ishlatilmaydi, ularni o'chirsa bo'ladi.
+
+---
+
 ## 1-bosqich — Yangi baza (2026-10-14)
 
 Eski Supabase loyihasiga ulanib bo'lmadi (manzil DNS'da yo'q, to'xtatilgan yoki o'chirilgan).

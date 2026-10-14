@@ -83,8 +83,12 @@ create trigger products_updated_at before update on products
   for each row execute function set_updated_at();
 create index products_category_idx on products(category_id) where is_active;
 create index products_created_idx  on products(created_at desc) where is_active;
-create index products_name_uz_trgm on products using gin (name_uz extensions.gin_trgm_ops);
-create index products_name_ru_trgm on products using gin (name_ru extensions.gin_trgm_ops);
+-- Search text: both names, lower-case, without apostrophes, so that
+-- "romol", "ro'mol", "ro‘mol" and "roʻmol" all find "Ro'mol".
+alter table products add column search_text text generated always as (
+  lower(translate(name_uz || ' ' || name_ru, $$'`ʻʼ‘’$$, ''))
+) stored;
+create index products_search_trgm on products using gin (search_text extensions.gin_trgm_ops);
 
 -- ── product_variants (colour × size, each with its own stock) ────────────────
 create table product_variants (

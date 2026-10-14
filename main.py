@@ -17,8 +17,9 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.config import BOT_TOKEN
-from bot.handlers import start, admin
-# catalog, orders, payments, my_orders — removed (handled by Mini App + FastAPI)
+from bot.handlers import start
+# Shop and admin work live in the Mini App + API. Admin quick actions in the
+# bot return in phase 5 (see docs/SPEC.md).
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -69,8 +70,7 @@ async def main() -> None:
     # ── Register routers — ORDER MATTERS ──────────────────────────────────────
     # Bot is now NOTIFICATION LAYER ONLY.
     # catalog / orders / payments / my_orders → handled by Mini App + FastAPI
-    dp.include_router(start.router)       # /start, /settings, Mini App button
-    dp.include_router(admin.router)       # admin order/payment action callbacks + /setphotos
+    dp.include_router(start.router)       # /start, Mini App button
     dp.include_router(_fallback_router)   # catch-all — must be LAST
 
     logger.info("🤖 Misr Romol Bot starting...")

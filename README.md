@@ -7,10 +7,11 @@ Telegram Mini App orqali ishlaydigan onlayn do'kon. Reja va kelishuvlar: [docs/S
 | Papka | Nima |
 |---|---|
 | `api/` | FastAPI backend — Mini App shu orqali ishlaydi |
-| `bot/` + `main.py` | Telegram bot — `/start`, admin xabarnomalari va tasdiqlash tugmalari |
+| `bot/` + `main.py` | Telegram bot — `/start` va Mini App tugmasi |
 | `miniapp/` | React Mini App (Vite + Tailwind) |
 | `deploy/` | Caddy (HTTPS + Mini App + API proksi) |
-| `db/` | Baza sxemasi (`schema.sql`) va uning testlari |
+| `db/` | Baza sxemasi (`schema.sql`), migratsiyalar va testlar |
+| `tests/` | API testlari |
 
 ## Baza (Supabase)
 
@@ -18,7 +19,11 @@ Telegram Mini App orqali ishlaydigan onlayn do'kon. Reja va kelishuvlar: [docs/S
 2. SQL Editor → `db/schema.sql` ni to'liq joylashtirib Run. Jadvallar, funksiyalar, xavfsizlik va bucketlar yaratiladi.
 3. Project Settings → API Keys → **secret** kalitni `.env` dagi `SUPABASE_KEY` ga qo'ying. Publishable/anon kalit ishlamaydi: baza faqat backend'ga ochiq.
 
-Sxemani o'zgartirsangiz, testlarni ishga tushiring (Docker kerak): `bash db/tests/run.sh`
+Mavjud bazani yangilash: `db/migrations/` dagi hali ishga tushirilmagan fayllarni tartib bilan SQL Editor'da Run qiling.
+
+Testlar (Docker kerak):
+- `bash db/tests/run.sh` — baza funksiyalari
+- `bash tests/run.sh` — API boshdan-oxir (Postgres + PostgREST)
 
 ## Lokal ishga tushirish
 
@@ -40,7 +45,7 @@ Telegram ichida sinash uchun: `bash test_telegram.sh` (Cloudflare tunnel ochadi)
 2. VPS'da Docker o'rnatilgan bo'lsin, proyektni ko'chiring va `.env` ni to'ldiring:
    - `APP_DOMAIN`, `API_DOMAIN`
    - `MINI_APP_URL=https://<APP_DOMAIN>`, `ALLOWED_ORIGINS=https://<APP_DOMAIN>`
-   - `ADMIN_SECRET_KEY` — kamida 32 belgili tasodifiy satr
+   - `SUPER_ADMIN_IDS` — do'kon egasining Telegram ID'si (admin bo'limiga kirish uchun)
    - `DEV_MODE=false`
 3. Ishga tushirish:
    ```bash

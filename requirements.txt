@@ -99,6 +99,8 @@ opentelemetry-api==1.45.1
     # via fastapi
 packaging==26.2
     # via deprecation
+pillow==12.3.0
+    # via msrromol
 postgrest==2.29.0
     # via supabase
 propcache==0.4.1
