@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CheckIcon, CopyIcon, ImageIcon, PackageIcon, TruckIcon } from '../components/icons'
 import { Countdown, OrderTimeline, StatusBadge } from '../components/order'
 import { ProductImage } from '../components/product'
-import { Button, EmptyState, ErrorState, Section, Skeleton } from '../components/ui'
+import { Button, EmptyState, ErrorState, LinkifiedText, Section, Skeleton } from '../components/ui'
 import { toast } from '../lib/toast'
 import { useCancelOrder, useMeta, useOrder, useSubmitPayment } from '../hooks/queries'
 import { cardNumber, dateTime, localized, money, phone, pick } from '../lib/format'
@@ -258,6 +258,15 @@ export default function OrderPage() {
               <button type="button" onClick={() => copyText(order.tracking_number).then(() => toast.show(t('common.copied')))}>
                 <CopyIcon className="h-5 w-5" />
               </button>
+            </div>
+          )}
+          {order.delivery_info && (
+            <div className="mt-3 rounded-xl bg-violet-50 px-4 py-3 text-violet-900">
+              <p className="mb-1 flex items-center gap-2 text-sm font-semibold">
+                <TruckIcon className="h-5 w-5" />
+                {t('order.delivery_info')}
+              </p>
+              <LinkifiedText text={order.delivery_info} className="text-sm" />
             </div>
           )}
         </Section>

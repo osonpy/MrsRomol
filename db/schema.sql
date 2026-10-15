@@ -179,6 +179,7 @@ create table orders (
   location_lng     double precision check (location_lng between -180 and 180),
   delivery_method  text not null check (delivery_method in ('taxi', 'post', 'bts')),
   tracking_number  text,
+  delivery_info    text not null default '',  -- shown to the customer: driver, car, live-tracking link…
   customer_note    text not null default '',
   admin_note       text not null default '',
   -- money

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { errorText } from '../i18n'
+import { openLink } from '../lib/telegram'
 import { useToastStore } from '../lib/toast'
 import { XIcon } from './icons'
 
@@ -158,5 +159,32 @@ export function Section({ title, children, className = '' }) {
       {title && <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-soft">{title}</h2>}
       {children}
     </section>
+  )
+}
+
+// Plain text that keeps line breaks and makes http(s) links tappable.
+const URL_RE = /(https?:\/\/[^\s]+)/g
+
+export function LinkifiedText({ text, className = '' }) {
+  return (
+    <p className={`whitespace-pre-line break-words ${className}`}>
+      {text.split(URL_RE).map((part, i) =>
+        i % 2 ? (
+          <a
+            key={i}
+            href={part}
+            onClick={(e) => {
+              e.preventDefault()
+              openLink(part)
+            }}
+            className="font-semibold underline"
+          >
+            {part}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </p>
   )
 }

@@ -179,8 +179,12 @@ _CUSTOMER_TEXT: dict[str, dict[str, str]] = {
         "ru": "✅ Заказ <b>#{n}</b>: оплата подтверждена! Скоро отправим.",
     },
     "shipped": {
-        "uz": "🚚 Buyurtma <b>#{n}</b> yuborildi.{tracking}",
-        "ru": "🚚 Заказ <b>#{n}</b> отправлен.{tracking}",
+        "uz": "🚚 Buyurtma <b>#{n}</b> yuborildi.{tracking}{info}",
+        "ru": "🚚 Заказ <b>#{n}</b> отправлен.{tracking}{info}",
+    },
+    "delivery_info": {
+        "uz": "🚚 Buyurtma <b>#{n}</b>: yetkazish ma'lumoti{info}",
+        "ru": "🚚 Заказ <b>#{n}</b>: информация о доставке{info}",
     },
     "delivered": {
         "uz": "📦 Buyurtma <b>#{n}</b> yetkazildi. Xaridingiz uchun rahmat! 🌸",
@@ -222,6 +226,7 @@ async def customer_order_update(
         minutes=minutes,
         tracking=f"\n📮 {label}: <code>{escape(order['tracking_number'])}</code>" if order.get("tracking_number") else "",
         reason=f"\n💬 {escape(reason)}" if reason else "",
+        info=f"\n\n{escape(order['delivery_info'])}" if order.get("delivery_info") else "",
     )
     await send_message(telegram_id, text, order_button(_BUTTON[lang], order))
 

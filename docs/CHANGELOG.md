@@ -5,6 +5,35 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 6.1 — Mijoz uchun yetkazish ma'lumoti (2026-10-15)
+
+**Muammo:** admin "Yuborildi" bosganda yozgan taksi ma'lumoti faqat tarixga tushardi. Mijoz uni ko'rmasdi, xabarda ham yo'q edi. Yandex Go kuzatish havolasini mijozga yuborishning iloji yo'q edi.
+
+### Nima qilindi
+- Buyurtmaga yangi maydon qo'shildi: **"Mijoz uchun ma'lumot"** (`orders.delivery_info`, migratsiya 004). Bu ichki izohdan alohida maydon, uni mijoz ko'radi.
+- **"Yuborildi" oynasi:**
+  - Taksi uchun: matn maydoni (mashina, raqam, haydovchi telefoni, Yandex havolasi).
+  - Pochta va BTS uchun: trek raqami va ixtiyoriy qo'shimcha ma'lumot.
+- **Keyin qo'shish:** Yandex havolasi taksi chaqirilgandan keyin keladi. Shuning uchun buyurtma "Yuborildi" holatida turganda admin buyurtma sahifasida **"Mijoz uchun ma'lumot" → Tahrirlash** orqali ma'lumotni qo'shishi yoki o'zgartirishi mumkin. Har safar mijozga yangi xabar boradi.
+- **Mijoz:**
+  - Telegram xabarida ma'lumot to'liq keladi, havolalar bosiladigan bo'ladi.
+  - Mini App'dagi buyurtma sahifasida "Yetkazish ma'lumoti" bloki chiqadi. Havola Yandex Go ilovasida yoki brauzerda ochiladi.
+- "Ichki izoh" maydonidagi "taksi raqami" degan eski namuna matni olib tashlandi, chunki bu ma'lumot endi mijoz uchun maydonga yoziladi.
+
+### Testlar
+- API: 33/33. Yangi tekshiruvlar:
+  - ma'lumot xabarda bor va HTML ekranlangan;
+  - yuborilgandan keyin havola qo'shilsa, mijozga xabar boradi;
+  - yuborilmagan yoki yetkazilgan buyurtmada tahrirlash 409 qaytaradi;
+  - mijoz tahrirlay olmaydi (403);
+  - mavjud bo'lmagan buyurtma 404 qaytaradi.
+- Baza 47/47. Brauzer: xaridor va admin yurishlari xatosiz o'tdi, admin yurishiga havola qo'shish qadami qo'shildi.
+
+### Egasi qilishi kerak
+- **Avval** Supabase → SQL Editor → `db/migrations/004_order_delivery_info.sql` → Run. **Keyin** VPS'da `git pull && docker compose up -d --build`. Tartib muhim: aks holda buyurtma sahifalari xato beradi.
+
+---
+
 ## 6-bosqich — Serverga joylash (2026-10-15)
 
 Do'kon jonli: **https://app.mrsromol.uz** (Mini App) va **https://api.mrsromol.uz** (API).

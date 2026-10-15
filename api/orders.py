@@ -80,6 +80,7 @@ async def shape_order(order: dict[str, Any], admin: bool = False) -> dict[str, A
         "location_lng": order["location_lng"],
         "delivery_method": order["delivery_method"],
         "tracking_number": order["tracking_number"],
+        "delivery_info": order["delivery_info"],
         "customer_note": order["customer_note"],
         "subtotal": order["subtotal"],
         "discount": order["discount"],

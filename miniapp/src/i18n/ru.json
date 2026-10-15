@@ -147,6 +147,7 @@
     "cancel_confirm": "Отменить заказ?",
     "items": "Товары",
     "delivery": "Доставка",
+    "delivery_info": "Информация о доставке",
     "tracking": "Трек-номер",
     "reject_reason": "Причина",
     "status": {

@@ -12,9 +12,11 @@ from api.auth import Admin
 from api.catalog import LOW_STOCK
 from api.constants import ORDER_STATUSES
 from api.db import db, first, rpc, run, run_count
-from api.errors import not_found, validation
+from api.errors import AppError, not_found, validation
 from api.orders import load_order, shape_order
-from api.schemas import AdminCancelRequest, AdvanceOrderRequest, OrderNotePatch, ReviewPaymentRequest
+from api.schemas import (
+    AdminCancelRequest, AdvanceOrderRequest, DeliveryInfoRequest, OrderNotePatch, ReviewPaymentRequest,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin: orders"])
 
@@ -118,8 +120,30 @@ async def advance_order(
         "p_tracking_number": body.tracking_number or None,
         "p_note": body.note,
     })
+    if body.to == "shipped" and body.delivery_info.strip():
+        await run(db().table("orders").update({"delivery_info": body.delivery_info.strip()}).eq("id", str(order_id)))
     order = await load_order(str(order_id), admin=True)
     await _notify_customer(background, order, body.to)
+    return await shape_order(order, admin=True)
+
+
+@router.put("/orders/{order_id}/delivery-info")
+async def set_delivery_info(
+    order_id: UUID, body: DeliveryInfoRequest, background: BackgroundTasks, admin: Admin,
+) -> dict:
+    """Add or change delivery details after shipping (e.g. the Yandex link arrives later)."""
+    info = body.delivery_info.strip()
+    updated = await run(
+        db().table("orders").update({"delivery_info": info})
+        .eq("id", str(order_id)).eq("status", "shipped")
+    )
+    if not updated:
+        if not await first(db().table("orders").select("id").eq("id", str(order_id))):
+            raise not_found("Order not found")
+        raise AppError(409, "INVALID_TRANSITION", "Delivery details can be changed only while the order is on its way")
+    order = await load_order(str(order_id), admin=True)
+    if info:
+        await _notify_customer(background, order, "delivery_info")
     return await shape_order(order, admin=True)
 
 

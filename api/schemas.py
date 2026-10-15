@@ -169,6 +169,7 @@ class ReviewPaymentRequest(BaseModel):
 class AdvanceOrderRequest(BaseModel):
     to: Literal["shipped", "delivered"]
     tracking_number: str = Text(64)
+    delivery_info: str = Text(1000)
     note: str = Text(500)
 
 
@@ -178,6 +179,10 @@ class AdminCancelRequest(BaseModel):
 
 class OrderNotePatch(BaseModel):
     admin_note: str = Field(max_length=2000)
+
+
+class DeliveryInfoRequest(BaseModel):
+    delivery_info: str = Field(max_length=1000)
 
 
 # ── admin: promo, cards, settings, staff ──────────────────────────────────────

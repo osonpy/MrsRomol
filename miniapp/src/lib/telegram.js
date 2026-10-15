@@ -64,6 +64,13 @@ export function alertDialog(message) {
   return Promise.resolve()
 }
 
+// External links (Yandex Go tracking etc.) open in the browser / their app,
+// not inside the Mini App's webview.
+export function openLink(url) {
+  if (real?.openLink) real.openLink(url)
+  else window.open(url, '_blank', 'noopener')
+}
+
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text)

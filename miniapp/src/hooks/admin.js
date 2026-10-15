@@ -60,6 +60,8 @@ export const useAdvanceOrder = (orderId) =>
   useOrderAction(orderId, (body) => api.post(`/admin/orders/${orderId}/advance`, body))
 export const useAdminCancelOrder = (orderId) =>
   useOrderAction(orderId, (note) => api.post(`/admin/orders/${orderId}/cancel`, { note }))
+export const useDeliveryInfo = (orderId) =>
+  useOrderAction(orderId, (delivery_info) => api.put(`/admin/orders/${orderId}/delivery-info`, { delivery_info }))
 export const useOrderNote = (orderId) =>
   useOrderAction(orderId, (admin_note) => api.patch(`/admin/orders/${orderId}`, { admin_note }))
 

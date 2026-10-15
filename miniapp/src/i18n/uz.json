@@ -147,6 +147,7 @@
     "cancel_confirm": "Buyurtmani bekor qilasizmi?",
     "items": "Mahsulotlar",
     "delivery": "Yetkazib berish",
+    "delivery_info": "Yetkazish maʼlumoti",
     "tracking": "Trek raqami",
     "reject_reason": "Sabab",
     "status": {

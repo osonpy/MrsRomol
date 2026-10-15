@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CheckIcon, CopyIcon, MapPinIcon, PhoneIcon, TruckIcon, XIcon } from '../../components/icons'
+import { CheckIcon, CopyIcon, EditIcon, MapPinIcon, PhoneIcon, TruckIcon, XIcon } from '../../components/icons'
 import { StatusBadge } from '../../components/order'
 import { ProductImage } from '../../components/product'
-import { Button, ErrorState, Section, Sheet, Skeleton, StickyBar } from '../../components/ui'
-import { useAdminCancelOrder, useAdminOrder, useAdvanceOrder, useOrderNote, useReviewPayment } from '../../hooks/admin'
+import { Button, ErrorState, LinkifiedText, Section, Sheet, Skeleton, StickyBar } from '../../components/ui'
+import { useAdminCancelOrder, useAdminOrder, useAdvanceOrder, useDeliveryInfo, useOrderNote, useReviewPayment } from '../../hooks/admin'
 import { useMeta } from '../../hooks/queries'
 import { cardNumber, phone } from '../../lib/format'
 import { dateTime, money, t } from './uz'
@@ -50,6 +50,54 @@ function ReasonSheet({ open, onClose, title, presets = [], placeholder, confirmL
   )
 }
 
+const INFO_PLACEHOLDER = {
+  taxi: 'Mashina: oq Cobalt, 01A123BC\nHaydovchi: +998 90 123 45 67\nYandex Go havolasi: https://…',
+  post: 'Qoʻshimcha maʼlumot (ixtiyoriy): qachon yetib borishi, qayerdan olish…',
+  bts: 'Qoʻshimcha maʼlumot (ixtiyoriy): BTS filiali, qachon yetib borishi…',
+}
+
+// "Shipped" form: tracking number for post/BTS, and details the customer sees
+// (driver, car, live-tracking link). Also used to edit details later.
+function DeliverySheet({ open, onClose, order, editing, loading, onConfirm }) {
+  const [tracking, setTracking] = useState('')
+  const [info, setInfo] = useState(order.delivery_info || '')
+  const withTracking = !editing && order.delivery_method !== 'taxi'
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editing ? 'Yetkazish maʼlumoti' : 'Yuborildi'}
+      footer={
+        <Button className="w-full" loading={loading} onClick={() => onConfirm({ tracking: tracking.trim(), info: info.trim() })}>
+          {editing ? 'Saqlash — mijozga xabar boradi' : 'Tasdiqlash — mijozga xabar boradi'}
+        </Button>
+      }
+    >
+      <div className="space-y-3">
+        {withTracking && (
+          <label className="block">
+            <span className="label">Trek raqami ({order.delivery_method === 'bts' ? 'BTS' : 'pochta'})</span>
+            <input className="field font-mono" value={tracking} maxLength={64} onChange={(e) => setTracking(e.target.value)} />
+          </label>
+        )}
+        <label className="block">
+          <span className="label">Mijoz uchun maʼlumot (mijoz koʻradi)</span>
+          <textarea
+            className="field min-h-[7rem] resize-none"
+            maxLength={1000}
+            placeholder={INFO_PLACEHOLDER[order.delivery_method]}
+            value={info}
+            onChange={(e) => setInfo(e.target.value)}
+          />
+        </label>
+        {order.delivery_method === 'taxi' && !editing && (
+          <p className="text-xs text-ink-soft">Yandex havolasi keyinroq kelsa — hozir boʻsh qoldiring, keyin «Yetkazish maʼlumoti» → Tahrirlash orqali qoʻshasiz.</p>
+        )}
+      </div>
+    </Sheet>
+  )
+}
+
 function Receipt({ payment }) {
   const [full, setFull] = useState(false)
   if (!payment?.receipt_url) return <p className="text-sm text-ink-soft">Chek rasmi topilmadi</p>
@@ -79,7 +127,8 @@ export default function AdminOrderPage() {
   const advance = useAdvanceOrder(id)
   const cancel = useAdminCancelOrder(id)
   const saveNote = useOrderNote(id)
-  const [sheet, setSheet] = useState(null) // 'reject' | 'ship' | 'cancel'
+  const saveInfo = useDeliveryInfo(id)
+  const [sheet, setSheet] = useState(null) // 'reject' | 'ship' | 'info' | 'cancel'
   const [note, setNote] = useState(null)
 
   if (isPending) {
@@ -181,6 +230,19 @@ export default function AdminOrderPage() {
             <TruckIcon className="h-4 w-4 text-violet-700" /> Trek: <b className="font-mono">{o.tracking_number}</b>
           </p>
         )}
+        {(o.delivery_info || o.status === 'shipped') && (
+          <div className="mt-2 rounded-lg bg-violet-50 p-2.5 text-sm text-violet-900">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">Mijoz uchun maʼlumot</span>
+              {o.status === 'shipped' && (
+                <button type="button" onClick={() => setSheet('info')} className="inline-flex items-center gap-1 text-sm font-semibold text-rose-700">
+                  <EditIcon className="h-4 w-4" /> {o.delivery_info ? 'Tahrirlash' : 'Qoʻshish'}
+                </button>
+              )}
+            </div>
+            {o.delivery_info ? <LinkifiedText text={o.delivery_info} className="mt-1" /> : <p className="mt-1 text-violet-700/70">Hali yozilmagan</p>}
+          </div>
+        )}
       </Section>
 
       <Section title={`Mahsulotlar · ${money(o.total)}`}>
@@ -207,7 +269,7 @@ export default function AdminOrderPage() {
           className="field min-h-[4rem] resize-none"
           value={note ?? o.admin_note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Masalan: taksi raqami, kuryer ismi…"
+          placeholder="Faqat adminlar uchun eslatma"
         />
         {note !== null && note !== o.admin_note && (
           <Button variant="secondary" className="mt-2 h-10 w-full" loading={saveNote.isPending} onClick={() => run(saveNote, note, 'Saqlandi')}>
@@ -279,17 +341,25 @@ export default function AdminOrderPage() {
         loading={review.isPending}
         onConfirm={(reason) => run(review, { paymentId: o.payment?.id, approve: false, reason }, 'Rad etildi')}
       />
-      <ReasonSheet
-        open={sheet === 'ship'}
-        onClose={() => setSheet(null)}
-        title="Yuborildi"
-        placeholder={o.delivery_method === 'taxi' ? 'Izoh: masalan, taksi raqami (ixtiyoriy)' : 'Trek raqami (pochta / BTS)'}
-        confirmLabel="Tasdiqlash — mijozga xabar boradi"
-        loading={advance.isPending}
-        onConfirm={(text) =>
-          run(advance, o.delivery_method === 'taxi' ? { to: 'shipped', note: text } : { to: 'shipped', tracking_number: text }, 'Yuborildi')
-        }
-      />
+      {sheet === 'ship' && (
+        <DeliverySheet
+          open
+          order={o}
+          onClose={() => setSheet(null)}
+          loading={advance.isPending}
+          onConfirm={({ tracking, info }) => run(advance, { to: 'shipped', tracking_number: tracking, delivery_info: info }, 'Yuborildi')}
+        />
+      )}
+      {sheet === 'info' && (
+        <DeliverySheet
+          open
+          editing
+          order={o}
+          onClose={() => setSheet(null)}
+          loading={saveInfo.isPending}
+          onConfirm={({ info }) => run(saveInfo, info, info ? 'Mijozga yuborildi' : 'Saqlandi')}
+        />
+      )}
       <ReasonSheet
         open={sheet === 'cancel'}
         onClose={() => setSheet(null)}

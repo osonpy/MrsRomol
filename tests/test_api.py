@@ -296,10 +296,24 @@ def test_admin_reviews_payment(wife, owner, ali, fakes):
 def test_admin_ships_and_delivers(wife, ali, fakes):
     url = f"/admin/orders/{S['order']}/advance"
     assert wife.post(url, json={"to": "delivered"}).json()["code"] == "INVALID_TRANSITION"
-    r = wife.post(url, json={"to": "shipped", "tracking_number": "BTS-777"})
-    assert r.json()["status"] == "shipped"
-    assert "BTS-777" in notes(fakes, ALI)[-1]["text"]
+    info_url = f"/admin/orders/{S['order']}/delivery-info"
+    assert wife.put(info_url, json={"delivery_info": "x"}).json()["code"] == "INVALID_TRANSITION"  # not shipped yet
+    r = wife.post(url, json={"to": "shipped", "tracking_number": "BTS-777", "delivery_info": "Toshkent filiali <3"})
+    assert r.json()["status"] == "shipped" and r.json()["delivery_info"] == "Toshkent filiali <3"
+    msg = notes(fakes, ALI)[-1]["text"]
+    assert "BTS-777" in msg and "Toshkent filiali &lt;3" in msg
+
+    # The live-tracking link arrives after shipping: the customer sees it and gets a message.
+    sent = len(notes(fakes, ALI))
+    r = wife.put(info_url, json={"delivery_info": "Yandex Go: https://3.redirect.appmetrica.yandex.com/route?x=1"})
+    assert r.status_code == 200
+    assert ali.get(f"/orders/{S['order']}").json()["delivery_info"].startswith("Yandex Go: https://")
+    assert len(notes(fakes, ALI)) == sent + 1 and "https://3.redirect" in notes(fakes, ALI)[-1]["text"]
+    assert ali.put(info_url, json={"delivery_info": "hack"}).status_code == 403
+    assert wife.put(f"/admin/orders/00000000-0000-0000-0000-000000000000/delivery-info", json={"delivery_info": "x"}).status_code == 404
+
     assert wife.post(url, json={"to": "delivered"}).json()["status"] == "delivered"
+    assert wife.put(info_url, json={"delivery_info": "late"}).status_code == 409
     assert wife.patch(f"/admin/orders/{S['order']}", json={"admin_note": "Mijoz mamnun"}).json()["admin_note"]
 
     hist = ali.get(f"/orders/{S['order']}").json()["history"]

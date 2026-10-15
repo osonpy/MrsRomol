@@ -47,6 +47,7 @@ export const GlobeIcon = icon(<><circle cx="12" cy="12" r="8.5" /><path d="M3.5 
 export const BellIcon = icon(<><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></>)
 export const BookIcon = icon(<><path d="M5 4.5h9a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5Z" /><path d="M5 17a3 3 0 0 1 3-3h9" /></>)
 export const ShieldIcon = icon(<><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-4" /></>)
+export const EditIcon = icon(<><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></>)
 
 export function HeartFilledIcon({ className = 'h-6 w-6' }) {
   return (

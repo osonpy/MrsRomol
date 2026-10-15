@@ -47,6 +47,14 @@ await clickText('Yuborildi deb belgilash')
 await page.type('div[role=dialog] textarea', 'Yandex taksi, 01 A 123 BC')
 await clickText('Tasdiqlash — mijozga xabar boradi'); await sleep(1200)
 await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await shot('a05_order_shipped')
+// The Yandex tracking link comes later: add it to the details the customer sees.
+await clickText('Tahrirlash')
+await page.focus('div[role=dialog] textarea'); await page.keyboard.down('Control'); await page.keyboard.press('End'); await page.keyboard.up('Control')
+await page.type('div[role=dialog] textarea', '\nhttps://go.yandex/route/abc')
+await clickText('Saqlash — mijozga xabar boradi'); await sleep(1200)
+const info = await page.evaluate(() => document.body.innerText)
+if (!info.includes('Yandex taksi, 01 A 123 BC') || !info.includes('https://go.yandex/route/abc')) throw new Error('delivery info not shown')
+await shot('a05b_delivery_info')
 
 // ── new product ───────────────────────────────────────────────────────────────
 await page.goto(BASE + '/admin/products', { waitUntil: 'networkidle0' })
