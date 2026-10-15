@@ -29,6 +29,10 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
   - mavjud bo'lmagan buyurtma 404 qaytaradi.
 - Baza 47/47. Brauzer: xaridor va admin yurishlari xatosiz o'tdi, admin yurishiga havola qo'shish qadami qo'shildi.
 
+### Eski bot tugmalari olib tashlandi
+- Eski botdan foydalangan mijozlarda yozish maydoni ostida **"Katalog / Mening buyurtmalarim / Bog'lanish / Til"** tugmalari qolib ketgan edi. Telegram bunday klaviaturani bot o'zi o'chirmaguncha saqlab turadi. Tugmalar hech narsa qilmasdi.
+- Endi bot har bir salomlashuvdan oldin bu klaviaturani o'chiradi. Buning uchun yordamchi xabar yuboriladi va darhol o'chiriladi. Mijoz `/start` bosganda yoki eski tugmalardan birini bosganda ular yo'qoladi va faqat **"Do'kon"** menyu tugmasi qoladi.
+
 ### Egasi qilishi kerak
 - **Avval** Supabase → SQL Editor → `db/migrations/004_order_delivery_info.sql` → Run. **Keyin** VPS'da `git pull && docker compose up -d --build`. Tartib muhim: aks holda buyurtma sahifalari xato beradi.
 

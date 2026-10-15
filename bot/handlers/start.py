@@ -6,7 +6,8 @@ from html import escape
 
 from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.exceptions import TelegramAPIError
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyKeyboardRemove, WebAppInfo
 
 from bot.config import MINI_APP_URL
 from bot.texts import GREETING, OPEN_SHOP, lang_of
@@ -28,4 +29,19 @@ async def greet(message: Message) -> None:
     user = message.from_user
     lang = lang_of(user.language_code if user else None)
     name = escape(user.first_name) if user and user.first_name else ""
+    await drop_old_keyboard(message)
     await message.answer(GREETING[lang].format(name=name), reply_markup=shop_keyboard(lang))
+
+
+async def drop_old_keyboard(message: Message) -> None:
+    """
+    The old bot left a reply keyboard (Katalog / Buyurtmalarim / Bog'lanish / Til)
+    under the input field; Telegram keeps it until a bot removes it. A message
+    can't carry both that removal and our inline button, so send a throwaway
+    message that removes the keyboard and delete it at once.
+    """
+    try:
+        sent = await message.answer("🌸", reply_markup=ReplyKeyboardRemove())
+        await sent.delete()
+    except TelegramAPIError:
+        pass

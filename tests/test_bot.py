@@ -4,6 +4,8 @@ callback queries against the real database.
 """
 from types import SimpleNamespace as NS
 
+from aiogram.types import ReplyKeyboardRemove
+
 from bot.handlers.payments import on_payment_button
 from conftest import OWNER, As
 from helpers import make_product, order_with_receipt
@@ -110,10 +112,17 @@ def test_bad_callback_data_is_rejected(client):
 def test_greeting_offers_the_shop_only_in_private_chats(client):
     from bot.handlers.start import greet
 
-    replies = []
+    replies, removed, deleted = [], [], []
+
+    async def delete():
+        deleted.append(True)
 
     async def answer(text, reply_markup=None):
-        replies.append((text, reply_markup))
+        if isinstance(reply_markup, ReplyKeyboardRemove):  # clears the old bot's keyboard
+            removed.append(text)
+        else:
+            replies.append((text, reply_markup))
+        return NS(delete=delete)
 
     def message(chat_type, lang):
         return NS(chat=NS(type=chat_type), from_user=NS(first_name="Zarina<b>", language_code=lang), answer=answer)
@@ -126,3 +135,4 @@ def test_greeting_offers_the_shop_only_in_private_chats(client):
     assert "Mrs Romol" in replies[-1][0] and replies[-1][1].inline_keyboard[0][0].text == "🛍 Doʻkonni ochish"
     client.portal.call(greet, message("supergroup", "uz"))
     assert len(replies) == 2  # silent in the admin group
+    assert len(removed) == len(deleted) == 2  # old reply keyboard removed, helper message deleted
