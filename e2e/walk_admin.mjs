@@ -13,9 +13,11 @@ const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '
 const page = await browser.newPage()
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
 const problems = []
-page.on('console', (m) => m.type() === 'error' && problems.push('console: ' + m.text()))
+// ERR_NETWORK_CHANGED: Docker just created the demo network; harmless.
+page.on('console', (m) => m.type() === 'error' && !m.text().includes('ERR_NETWORK_CHANGED') && problems.push('console: ' + m.text()))
 page.on('pageerror', (e) => problems.push('pageerror: ' + e.message))
 page.on('response', (r) => r.status() >= 400 && problems.push(`${r.status()} ${r.request().method()} ${r.url()}`))
+page.on('dialog', (d) => d.accept()) // confirm() outside Telegram
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const shot = async (name) => { await sleep(700); await page.screenshot({ path: `${OUT}/${name}.png` }); console.log('shot', name) }
 const clickText = async (text, sel = 'button, a, label') => {
@@ -79,6 +81,47 @@ await clickText('Oʻzgarishlarni saqlash'); await sleep(1200)
 await page.goto(BASE + '/?q=kashmir', { waitUntil: 'networkidle0' }); await shot('a12_published_in_shop')
 
 await page.goto(BASE + '/admin/more', { waitUntil: 'networkidle0' }); await shot('a13_more')
+
+// ── part 2: categories, promo codes, cards, settings, staff ──────────────────
+await clickText('Kategoriyalar'); await page.waitForFunction(() => location.pathname === '/admin/categories')
+await clickText('Qoʻshish')
+await page.type('div[role=dialog] input[placeholder=Roʻmollar]', 'Paltolar')
+await page.type('div[role=dialog] input[placeholder=Платки]', 'Пальто')
+await clickText('Saqlash', 'div[role=dialog] button'); await sleep(900)
+await shot('a14_categories')
+
+await page.goto(BASE + '/admin/promo', { waitUntil: 'networkidle0' })
+await clickText('Yangi')
+await page.type('div[role=dialog] input[placeholder=BAHOR10]', 'yoz15')
+const promoInputs = await page.$$('div[role=dialog] input[inputmode=numeric]')
+await promoInputs[0].type('15')
+await promoInputs[1].type('300000')
+await shot('a15_promo_sheet')
+await clickText('Yaratish', 'div[role=dialog] button'); await sleep(900)
+await shot('a16_promo_list')
+
+await page.goto(BASE + '/admin/cards', { waitUntil: 'networkidle0' })
+await clickText('Qoʻshish')
+await page.type('div[role=dialog] input[placeholder="8600 0000 0000 0000"]', '9860111122223333')
+await page.type('div[role=dialog] input[placeholder="MAKHMUD A."]', 'dilnoza a.')
+await clickText('Qoʻshish', 'div[role=dialog] button'); await sleep(900)
+await shot('a17_cards')
+
+await page.goto(BASE + '/admin/settings', { waitUntil: 'networkidle0' })
+await typeInto('input[inputmode=numeric]', '45')
+await clickText('Saqlash'); await sleep(900)
+await shot('a18_settings')
+
+await page.goto(BASE + '/admin/staff', { waitUntil: 'networkidle0' })
+await page.type('input[placeholder="Ism, telefon yoki ID"]', 'Dilnoza')
+await page.waitForFunction(() => [...document.querySelectorAll('button')].some((b) => b.textContent.includes('Admin qilish')), { timeout: 8000 })
+await clickText('Admin qilish'); await sleep(1200)
+await shot('a19_staff')
+
+// The shop sees the new settings and category.
+await page.goto(BASE + '/', { waitUntil: 'networkidle0' })
+const shopText = await page.evaluate(() => document.body.innerText)
+if (!/Paltolar|Пальто/.test(shopText)) problems.push('new category not shown in shop') // shop may be in Russian
 
 console.log('PROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none')
 await browser.close()

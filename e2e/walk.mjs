@@ -9,11 +9,19 @@ mkdirSync(OUT, { recursive: true })
 const RECEIPT = resolve('../.demo/storage/product-images/demo/white0.webp')
 const CHROME = process.env.CHROME || '/usr/bin/google-chrome'
 const BASE = 'http://localhost:5173'
+const API = process.env.API || 'http://localhost:8000'
+// A previous run ends by switching to Russian; start every run in Uzbek.
+await fetch(`${API}/me`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': 'mock_init_data_for_dev' },
+  body: JSON.stringify({ language: 'uz' }),
+})
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--lang=uz'] })
 const page = await browser.newPage()
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
 const problems = []
-page.on('console', (m) => m.type() === 'error' && problems.push('console: ' + m.text()))
+// ERR_NETWORK_CHANGED: Docker just created the demo network; harmless.
+page.on('console', (m) => m.type() === 'error' && !m.text().includes('ERR_NETWORK_CHANGED') && problems.push('console: ' + m.text()))
 page.on('pageerror', (e) => problems.push('pageerror: ' + e.message))
 page.on('response', (r) => r.status() >= 400 && problems.push(`${r.status()} ${r.request().method()} ${r.url()}`))
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))

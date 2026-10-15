@@ -26,7 +26,7 @@ Mavjud bazani yangilash: `db/migrations/` dagi hali ishga tushirilmagan fayllarn
 Testlar (Docker kerak):
 - `bash db/tests/run.sh` — baza funksiyalari
 - `bash tests/run.sh` — API boshdan-oxir (Postgres + PostgREST)
-- `bash e2e/demo_stack.sh` — namuna mahsulotlar bilan lokal demo do'kon; keyin `node e2e/walk.mjs` brauzerda butun xarid yo'lini o'tib, har bir sahifani skrinshot qiladi
+- `bash e2e/demo_stack.sh` — namuna mahsulotlar bilan lokal demo do'kon; keyin `node e2e/walk.mjs` (xaridor) va `node e2e/walk_admin.mjs` (admin) brauzerda butun yo'lni o'tib, har bir sahifani skrinshot qiladi
 
 ## Lokal ishga tushirish
 

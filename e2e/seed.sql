@@ -77,4 +77,5 @@ insert into product_images (product_id, color_uz, storage_path, sort_order) valu
 insert into payment_cards (card_number, holder_name, card_type, sort_order) values ('8600123456789012','MAKHMUD A.','uzcard',0),('9860123456789012','MAKHMUD A.','humo',1);
 insert into promo_codes (code, discount_type, discount_value, min_order_amount) values ('BAHOR10','percent',10,200000);
 update settings set value = to_jsonb('Sotilgan mahsulot qaytarilmaydi va almashtirilmaydi.
-Yetkazib berish narxini mijoz kuryerga toʻlaydi.'::text) where key='rules_uz';
+Yetkazib berish narxini mijoz kuryerga toʻlaydi.'::text) where key='rules_uz';-- A second person, so the owner can appoint an admin in the demo.
+insert into customers (telegram_id, full_name, phone) values (555000111, 'Dilnoza (demo)', '+998901112233');

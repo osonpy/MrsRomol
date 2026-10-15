@@ -55,6 +55,7 @@ cat <<MSG
 Demo stack is up. In two terminals:
   set -a; . $WORK/api.env; set +a; uv run uvicorn api.main:app --port 8000
   cd miniapp && VITE_API_URL=http://localhost:8000 npm run dev
-Open http://localhost:5173 (you are the demo super admin), or run the walk-through:
-  cd e2e && npm install && node walk.mjs ../.demo/shots
+Open http://localhost:5173 (you are the demo super admin), or run the walk-throughs
+(each needs a fresh stack: they buy demo stock and use the promo code):
+  cd e2e && npm install && node walk.mjs && node walk_admin.mjs
 MSG

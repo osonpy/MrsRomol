@@ -5,6 +5,50 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 4-bosqich — Admin bo'limi (2026-10-14 … 15)
+
+Admin bo'limi Mini App ichida joylashgan: **Profil → Admin panel** (faqat `admin` va `super_admin` uchun ochiladi). Bildirishnomadagi "Ochish" tugmasi to'g'ridan-to'g'ri kerakli buyurtmani ochadi. Admin ekranlari hozircha **faqat o'zbekcha**: admin o'zi uchun do'konni ruscha qilib qo'ygan bo'lsa ham, admin bo'limi o'zbekcha qoladi.
+
+### Ekranlar
+| Ekran | Imkoniyatlar |
+|---|---|
+| **Panel** | Bugungi buyurtmalar va tushum; "Chekni tekshirish kerak", "Yuborish kerak", "To'lov kutilmoqda" (bosilsa ro'yxat filtrlangan holda ochiladi); tugayotgan va tugagan variantlar |
+| **Buyurtmalar** | Holat bo'yicha filtr, raqam (`#1024`) yoki telefon bo'yicha qidiruv |
+| **Buyurtma** | Chek rasmi (to'liq ekranda ko'rish mumkin); **Tasdiqlash** yoki **Rad etish** (tayyor sabablar bilan: "Chek o'qilmaydi", "Summa mos emas"…); **Yuborildi** (pochta yoki BTS uchun trek raqami, taksi uchun izoh); **Yetkazildi**; bekor qilish; mijozga qo'ng'iroq qilish yoki Telegram'da yozish; manzilni nusxalash; xaritada ochish; ichki izoh; tarix. Har bir harakatdan keyin mijozga avtomatik xabar boradi |
+| **Mahsulotlar** | Ro'yxat va qidiruv; "Yashirin", "Rasm yo'q", "Variant yo'q", qoldiq belgilari |
+| **Mahsulot** | Nomi va tavsifi (uz/ru), kategoriya, narx, tannarx (faqat admin ko'radi); **5 tagacha rasm** (tartibini o'zgartirish, rangga bog'lash, o'chirish); **variantlar**: ranglar × o'lchamlarni bir bosishda yaratish (10 ta tayyor rang, istalgan rang va o'lcham qo'shish mumkin), har birining qoldig'i va alohida narxi; **o'lchamlar jadvali** (ko'krak, bel, son, uzunlik… "dan–gacha"); "Do'konda ko'rsatish" (yangi mahsulot avval yashirin turadi); o'chirish |
+| **Kategoriyalar** | Qo'shish, tahrirlash, yashirish, o'chirish (mahsulotlar o'chmaydi) |
+| **Promokodlar** | Foiz yoki summa; minimal xarid summasi; umumiy limit; bir mijozga limit; muddat; yoqish va o'chirish; necha marta ishlatilgani |
+| **To'lov kartalari** *(faqat egasi)* | Qo'shish (Uzcard yoki Humo raqamdan avtomatik aniqlanadi), o'chirib qo'yish, o'chirish |
+| **Sozlamalar** *(faqat egasi)* | Bron muddati (daqiqa), do'kon qoidalari (uz/ru) |
+| **Xodimlar** *(faqat egasi)* | Hozirgi adminlar; **ism, telefon yoki ID bo'yicha qidirib "Admin qilish"**; adminlikdan olish |
+
+### API
+- `GET /admin/customers?q=` (faqat egasi): admin qilinadigan odamni ism, telefon yoki Telegram ID bo'yicha topish. Test qo'shildi (jami 27).
+
+### Testlar
+- **`e2e/walk_admin.mjs`** (yangi) brauzerda admin yo'lini o'tadi: panel → chekni tasdiqlash → yuborish → mahsulot yaratish → rasm yuklash → variantlar → do'konda e'lon qilish → kategoriya → promokod → karta → sozlamalar → admin tayinlash → do'kon yangilanganini tekshirish. **19 qadam, muammo yo'q.** Skrinshotlar ko'z bilan tekshirildi.
+- `e2e/fake_storage.py`: demo do'kon uchun Supabase Storage'ning o'rinbosari. Fayllarni haqiqatan saqlaydi, shuning uchun yuklangan rasm va cheklarni ko'rish mumkin.
+- Xaridor testi 17/17, API 27/27, baza 47/47.
+
+### Testlar paytida topilgan va tuzatilgan muammolar
+| Muammo | Tuzatish |
+|---|---|
+| Admin ekranlarida tillar aralashardi: matn o'zbekcha, holatlar, sanalar va "сум" ruscha | Admin bo'limi to'liq o'zbekchaga qotirildi (`pages/admin/uz.js`) |
+| "Rad etish" tugmasi ikki qatorga bo'linardi | Tugmalar teng kenglikda |
+| Yangi kategoriya ro'yxat boshiga tushardi | Oxiriga qo'shiladi |
+| **Disk to'lib qolgan edi (15 MB bo'sh)**: har bir test yugurishi Docker volume qoldirgan, ikkita parallel test esa bir-birining konteynerini o'chirib, abadiy kutib qolgan | `docker rm -v`; kutishlarga 60 soniyalik chegara; API testlari demo do'kondan alohida nom va portda ishlaydi. Mening 23 ta volume'im o'chirildi, egasining roziligi bilan Docker build cache (37 GB) tozalandi |
+| Brauzer testi oldingi test qoldirgan tilga va tugab qolgan demo qoldiqqa bog'liq edi | Har bir test o'zbek tilidan boshlanadi; hujjatda har bir test uchun toza stend kerakligi yozildi |
+
+### Boshqa
+- **`test_telegram.sh`** qayta yozildi: haqiqiy Telegram'da domensiz sinash (Cloudflare tunnel). Manzillar avtomatik ulanadi; demo va real rejimlar bor.
+
+### Hali yo'q (keyingi bosqichlar)
+- Yangi mahsulot haqida obunachilarga xabar yuborish va botdagi tezkor tasdiqlash tugmalari: **5-bosqich (bot)**.
+- Admin ekranlarining ruscha tarjimasi (kerak bo'lsa).
+
+---
+
 ## 3-bosqich — Mini App: xaridor qismi (2026-10-14)
 
 Mini App **noldan qayta yozildi** (eski kod butunlay olib tashlandi). Brend nomi kelishuvga ko'ra **Mrs Romol**.

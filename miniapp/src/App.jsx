@@ -29,6 +29,11 @@ const AdminOrder = lazy(() => import('./pages/admin/OrderPage'))
 const AdminProducts = lazy(() => import('./pages/admin/ProductsPage'))
 const AdminProductEdit = lazy(() => import('./pages/admin/ProductEditPage'))
 const AdminMore = lazy(() => import('./pages/admin/MorePage'))
+const AdminCategories = lazy(() => import('./pages/admin/CategoriesPage'))
+const AdminPromo = lazy(() => import('./pages/admin/PromoPage'))
+const AdminCards = lazy(() => import('./pages/admin/CardsPage'))
+const AdminSettings = lazy(() => import('./pages/admin/SettingsPage'))
+const AdminStaff = lazy(() => import('./pages/admin/StaffPage'))
 
 // Main sections: no Back button there.
 const TAB_PATHS = ['/', '/favorites', '/cart', '/orders', '/profile', '/admin', '/admin/orders', '/admin/products', '/admin/more']
@@ -95,6 +100,12 @@ function Root() {
   )
 }
 
+// Owner-only screens; the API enforces this too.
+function SuperAdminOnly({ children }) {
+  const { data: meta } = useMeta()
+  return meta?.me?.role === 'super_admin' ? children : <Navigate to="/admin/more" replace />
+}
+
 function NotFound() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -135,6 +146,11 @@ const router = createBrowserRouter([
           { path: 'products', element: <AdminProducts /> },
           { path: 'products/:id', element: <AdminProductEdit /> },
           { path: 'more', element: <AdminMore /> },
+          { path: 'categories', element: <AdminCategories /> },
+          { path: 'promo', element: <AdminPromo /> },
+          { path: 'cards', element: <SuperAdminOnly><AdminCards /></SuperAdminOnly> },
+          { path: 'settings', element: <SuperAdminOnly><AdminSettings /></SuperAdminOnly> },
+          { path: 'staff', element: <SuperAdminOnly><AdminStaff /></SuperAdminOnly> },
         ],
       },
       { path: '*', element: <NotFound /> },
