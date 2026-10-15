@@ -48,6 +48,8 @@ Keyin botga `/start` yozib, "Do'konni ochish" ni bosing. Ctrl+C — to'xtatish.
 
 ## VPS'ga deploy (Docker)
 
+To'liq yo'riqnoma (birinchi o'rnatish va kundalik ishlar): [docs/DEPLOY.md](docs/DEPLOY.md).
+
 1. Domen DNS'ida ikkita A-yozuv VPS IP'siga: `APP_DOMAIN` (masalan `app.misrromol.uz`) va `API_DOMAIN` (`api.misrromol.uz`).
 2. VPS'da Docker o'rnatilgan bo'lsin, proyektni ko'chiring va `.env` ni to'ldiring:
    - `APP_DOMAIN`, `API_DOMAIN`

@@ -11,3 +11,6 @@ build/
 .idea/
 .demo/
 e2e/node_modules/
+# Any env file with secrets (keep only the example in git)
+.env.*
+!.env.example
