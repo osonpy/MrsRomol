@@ -78,6 +78,14 @@ await shot('a11_variants_created')
 await page.evaluate(() => { const i = [...document.querySelectorAll('input[type=checkbox]')].pop(); i.scrollIntoView({ block: 'center' }); i.click() })
 await sleep(300)
 await clickText('Oʻzgarishlarni saqlash'); await sleep(1200)
+const productPath = new URL(page.url()).pathname
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+await clickText('Obunachilarga yuborish'); await sleep(1200)
+await shot('a12a_announced')
+// The announcement's "Ko'rish" button opens the product straight away.
+await page.goto(`${BASE}/?startapp=product_${productPath.split('/').pop()}`, { waitUntil: 'networkidle0' })
+if (!/\/product\//.test(new URL(page.url()).pathname)) problems.push('product deep link did not open the product')
+await shot('a12b_deep_link')
 await page.goto(BASE + '/?q=kashmir', { waitUntil: 'networkidle0' }); await shot('a12_published_in_shop')
 
 await page.goto(BASE + '/admin/more', { waitUntil: 'networkidle0' }); await shot('a13_more')

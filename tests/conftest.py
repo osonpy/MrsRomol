@@ -90,12 +90,23 @@ def fakes():
     storage = SimpleNamespace(from_=lambda name: FakeBucket(files, name))
     api.storage.db = lambda: SimpleNamespace(storage=storage)
 
-    async def fake_send(chat_id, text, button=None):
-        sent.append({"chat_id": int(chat_id), "text": text, "button": button})
-        return True
+    blocked: set = set()  # chat ids that "blocked the bot"
 
-    api.notify.send_message = fake_send
-    return SimpleNamespace(files=files, sent=sent)
+    async def fake_tg(method, payload):
+        chat_id = int(payload.get("chat_id", 0))
+        if chat_id in blocked:
+            return api.notify.BLOCKED
+        sent.append({
+            "method": method,
+            "chat_id": chat_id,
+            "text": payload.get("text") or payload.get("caption") or "",
+            "photo": payload.get("photo"),
+            "markup": payload.get("reply_markup"),
+        })
+        return {"message_id": len(sent)}
+
+    api.notify.tg = fake_tg
+    return SimpleNamespace(files=files, sent=sent, blocked=blocked)
 
 
 @pytest.fixture(scope="session")

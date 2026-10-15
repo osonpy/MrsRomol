@@ -14,14 +14,13 @@ from typing import Annotated, Any
 
 from fastapi import Depends, Header
 
-from api.config import BOT_TOKEN, DEV_MODE, INIT_DATA_MAX_AGE, SUPER_ADMIN_IDS
-from api.db import db, first, run
+from api.actions import ADMIN_ROLES, ensure_customer
+from api.config import BOT_TOKEN, DEV_MODE, INIT_DATA_MAX_AGE
 from api.errors import AppError, forbidden
 
 _MOCK_INIT_DATA = "mock_init_data_for_dev"
 _MOCK_USER = {"id": 123456789, "first_name": "Test", "last_name": "User", "language_code": "uz"}
 
-ADMIN_ROLES = ("admin", "super_admin")
 
 
 def _unauthorized() -> AppError:
@@ -77,30 +76,7 @@ async def current_customer(
     tg_user: Annotated[dict[str, Any], Depends(telegram_user)],
 ) -> dict[str, Any]:
     """Load the caller's customer row, creating it on first visit."""
-    telegram_id = int(tg_user["id"])
-    customer = await first(db().table("customers").select("*").eq("telegram_id", telegram_id))
-
-    if customer is None:
-        name = " ".join(p for p in (tg_user.get("first_name"), tg_user.get("last_name")) if p)
-        language = "ru" if str(tg_user.get("language_code", "")).startswith("ru") else "uz"
-        rows = await run(
-            db().table("customers").upsert(
-                {
-                    "telegram_id": telegram_id,
-                    "full_name": name[:128],
-                    "language": language,
-                    "role": "super_admin" if telegram_id in SUPER_ADMIN_IDS else "customer",
-                },
-                on_conflict="telegram_id",
-            )
-        )
-        customer = rows[0]
-    elif telegram_id in SUPER_ADMIN_IDS and customer["role"] != "super_admin":
-        rows = await run(
-            db().table("customers").update({"role": "super_admin"}).eq("id", customer["id"])
-        )
-        customer = rows[0]
-    return customer
+    return await ensure_customer(tg_user)
 
 
 async def current_admin(

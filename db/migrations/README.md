@@ -9,3 +9,4 @@ run yet, in number order (Supabase → SQL Editor → paste → Run).
 | # | What |
 |---|---|
 | 002 | Apostrophe-insensitive product search (`products.search_text`) |
+| 003 | `products.announced_at` — new-product announcement sent once |

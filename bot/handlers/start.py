@@ -1,48 +1,31 @@
-import logging
+"""
+start.py — /start and any other message: greet and offer the Mini App.
+The whole shop lives in the Mini App, so the bot has no menus of its own.
+"""
+from html import escape
 
 from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.types import (
-    Message,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    WebAppInfo,
-)
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
 from bot.config import MINI_APP_URL
+from bot.texts import GREETING, OPEN_SHOP, lang_of
 
-logger = logging.getLogger(__name__)
 router = Router()
 
 
+def shop_keyboard(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=OPEN_SHOP[lang], web_app=WebAppInfo(url=MINI_APP_URL))]]
+    )
+
+
 @router.message(CommandStart())
-async def cmd_start(message: Message) -> None:
-    name = message.from_user.first_name or "User"
-    lang = message.from_user.language_code or "uz"
-
-    greetings = {
-        "uz": f"Assalomu alaykum, {name}! 👋\n\nMrs Romol do'koniga xush kelibsiz. 🧣\nQuyidagi tugma orqali do'konni oching:",
-        "ru": f"Привет, {name}! 👋\n\nДобро пожаловать в магазин Mrs Romol. 🧣\nОткройте магазин по кнопке ниже:",
-        "en": f"Hello, {name}! 👋\n\nWelcome to Mrs Romol store. 🧣\nOpen the shop using the button below:",
-    }
-    text = greetings.get(lang[:2], greetings["uz"])
-
-    btn_labels = {
-        "uz": "🛍️ Do'konni ochish",
-        "ru": "🛍️ Открыть магазин",
-        "en": "🛍️ Open shop",
-    }
-    btn_text = btn_labels.get(lang[:2], btn_labels["uz"])
-
-    markup = None
-    if MINI_APP_URL:
-        markup = InlineKeyboardMarkup(
-            inline_keyboard=[[
-                InlineKeyboardButton(
-                    text=btn_text,
-                    web_app=WebAppInfo(url=MINI_APP_URL),
-                )
-            ]]
-        )
-
-    await message.answer(text, reply_markup=markup)
+@router.message()
+async def greet(message: Message) -> None:
+    if message.chat.type != "private":  # stay quiet in the admin group
+        return
+    user = message.from_user
+    lang = lang_of(user.language_code if user else None)
+    name = escape(user.first_name) if user and user.first_name else ""
+    await message.answer(GREETING[lang].format(name=name), reply_markup=shop_keyboard(lang))

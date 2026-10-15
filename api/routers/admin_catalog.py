@@ -1,11 +1,13 @@
 """
 admin_catalog.py — categories, products, variants and photos.
 """
+from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, Query, UploadFile
 
+from api import notify
 from api.auth import Admin
 from api.catalog import search_term
 from api.db import db, first, run, run_count
@@ -200,3 +202,42 @@ async def reorder_images(product_id: UUID, body: ImageOrder, admin: Admin) -> di
 async def delete_image(image_id: UUID, admin: Admin) -> None:
     rows = await run(db().table("product_images").delete().eq("id", str(image_id)))
     await delete_product_images([r["storage_path"] for r in rows])
+
+
+# ── announcements ─────────────────────────────────────────────────────────────
+
+async def _announce(product: dict[str, Any], image_url: str, price: int) -> None:
+    subscribers = await run(
+        db().table("customers").select("id, telegram_id, language").eq("notify_new_products", True)
+    )
+    blocked = await notify.announce_product(product, image_url, price, subscribers)
+    if blocked:  # they blocked the bot: stop trying
+        await run(db().table("customers").update({"notify_new_products": False}).in_("id", blocked))
+
+
+@router.post("/products/{product_id}/announce")
+async def announce_product(product_id: UUID, background: BackgroundTasks, admin: Admin) -> dict:
+    """Send a published product to everyone subscribed to new arrivals — once."""
+    p = await _load(str(product_id))
+    in_stock = [v for v in p["variants"] if v["is_active"] and v["stock"] > 0]
+    if not p["is_active"]:
+        raise AppError(409, "NOT_PUBLISHED", "Publish the product first")
+    if not p["images"]:
+        raise AppError(409, "NO_IMAGE", "Add a photo first")
+    if not in_stock:
+        raise AppError(409, "OUT_OF_STOCK", "Nothing in stock")
+
+    # Claim the announcement atomically: a double tap can't send twice.
+    claimed = await run(
+        db().table("products").update({"announced_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", p["id"]).is_("announced_at", "null")
+    )
+    if not claimed:
+        raise AppError(409, "ALREADY_ANNOUNCED", "Already sent to subscribers")
+
+    count = await run_count(
+        db().table("customers").select("id", count="exact").eq("notify_new_products", True).limit(1)
+    )
+    price = min(v["price_override"] if v["price_override"] is not None else p["price"] for v in in_stock)
+    background.add_task(_announce, p, p["images"][0]["url"], price)
+    return {"recipients": count[1], "announced_at": claimed[0]["announced_at"]}

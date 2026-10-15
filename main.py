@@ -1,11 +1,9 @@
 """
-main.py — bot entry point.
+main.py — Telegram bot entry point.
 
-Responsibilities:
-  1. Configure logging.
-  2. Build the Bot + Dispatcher.
-  3. Register all routers in the correct priority order.
-  4. Start polling.
+The bot is small: /start opens the Mini App, the chat menu button opens the
+Mini App, and admins approve or reject receipts with buttons. Everything else
+(catalogue, orders, notifications) lives in the Mini App and the API.
 """
 import asyncio
 import logging
@@ -14,14 +12,13 @@ import sys
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 
-from bot.config import BOT_TOKEN
-from bot.handlers import start
-# Shop and admin work live in the Mini App + API. Admin quick actions in the
-# bot return in phase 5 (see docs/SPEC.md).
+from api import db
+from bot.config import BOT_TOKEN, MINI_APP_URL
+from bot.handlers import payments, start
+from bot.texts import MENU_BUTTON
 
-# ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -30,56 +27,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ── Fallback / catch-all handler (must be last) ───────────────────────────────
-from aiogram import Router, F
-from aiogram.types import Message
-from bot.database import get_customer
-from bot.messages import get_message
-from bot.keyboards.main_menu import main_menu_keyboard
+async def setup_bot(bot: Bot) -> None:
+    """Menu button → Mini App, and the command list. Telegram needs HTTPS for Mini Apps."""
+    try:
+        await bot.set_my_commands([BotCommand(command="start", description="Doʻkonni ochish")])
+        await bot.set_my_commands([BotCommand(command="start", description="Открыть магазин")], language_code="ru")
+        if MINI_APP_URL.startswith("https://"):
+            await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(text=MENU_BUTTON, web_app=WebAppInfo(url=MINI_APP_URL)))
+        else:
+            logger.warning("MINI_APP_URL is not HTTPS (%s): menu button not set", MINI_APP_URL)
+    except Exception as e:  # cosmetic: never stop the bot for this
+        logger.warning("Bot setup failed: %s", e)
 
-_fallback_router = Router()
-
-@_fallback_router.message()
-async def fallback_handler(message: Message) -> None:
-    """
-    Catch all unhandled messages.
-    Show the main menu again with a friendly nudge.
-    """
-    customer = await get_customer(str(message.from_user.id))
-    lang = customer.get("language", "uz") if customer else "uz"
-    await message.answer(
-        get_message("unexpected_input", lang),
-        reply_markup=main_menu_keyboard(lang) if customer else None,
-    )
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Bootstrap
-# ══════════════════════════════════════════════════════════════════════════════
 
 async def main() -> None:
-    bot = Bot(
-        token=BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    await db.connect()
 
-    # MemoryStorage is fine for development.
-    # For production swap with RedisStorage to survive restarts.
-    dp = Dispatcher(storage=MemoryStorage())
+    dp = Dispatcher()
+    dp.include_router(payments.router)
+    dp.include_router(start.router)  # greets on any message — keep last
 
-    # ── Register routers — ORDER MATTERS ──────────────────────────────────────
-    # Bot is now NOTIFICATION LAYER ONLY.
-    # catalog / orders / payments / my_orders → handled by Mini App + FastAPI
-    dp.include_router(start.router)       # /start, Mini App button
-    dp.include_router(_fallback_router)   # catch-all — must be LAST
-
-    logger.info("🤖 Mrs Romol Bot starting...")
-
-    # Drop any pending updates accumulated while the bot was offline
+    await setup_bot(bot)
     await bot.delete_webhook(drop_pending_updates=True)
-
+    logger.info("🤖 Mrs Romol bot starting...")
     try:
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
     finally:
         await bot.session.close()
         logger.info("Bot stopped.")

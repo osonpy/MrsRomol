@@ -5,7 +5,7 @@ import { QtyStepper } from '../../components/order'
 import { Button, ErrorState, Section, Sheet, Skeleton, StickyBar } from '../../components/ui'
 import { useAdminProduct, useCategories, useProductMutation } from '../../hooks/admin'
 import { api } from '../../lib/api'
-import { money } from './uz'
+import { dateTime, money } from './uz'
 import { confirmDialog, haptic } from '../../lib/telegram'
 import { toast } from '../../lib/toast'
 
@@ -522,6 +522,49 @@ function SizeChartEditor({ product }) {
   )
 }
 
+// ── announcement ──────────────────────────────────────────────────────────────
+
+function Announce({ product }) {
+  const send = useProductMutation(product.id, () => api.post(`/admin/products/${product.id}/announce`))
+  const inStock = product.variants.some((v) => v.is_active && v.stock > 0)
+  const missing = !product.is_active
+    ? 'Avval mahsulotni doʻkonda koʻrsating (yuqorida) va saqlang'
+    : product.images.length === 0
+      ? 'Avval rasm qoʻshing'
+      : !inStock
+        ? 'Sotuvda qoldiq yoʻq'
+        : null
+
+  async function onSend() {
+    if (!(await confirmDialog('Yangi mahsulot haqida barcha obunachilarga Telegram xabari yuboriladi. Buni faqat bir marta qilish mumkin. Yuborilsinmi?'))) return
+    send.mutate(undefined, {
+      onSuccess: (r) => {
+        haptic.success()
+        toast.show(`${r.recipients} ta obunachiga yuborilmoqda`)
+      },
+      onError: toast.error,
+    })
+  }
+
+  return (
+    <Section title="Obunachilarga eʼlon">
+      {product.announced_at ? (
+        <p className="text-sm text-emerald-700">✅ Yuborilgan: {dateTime(product.announced_at)}</p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm text-ink-soft">
+            Yangi mahsulot haqida «yangi mahsulotlar haqida xabar» ni yoqqan mijozlarga rasm va «Koʻrish» tugmasi bilan xabar boradi.
+          </p>
+          <Button variant="secondary" className="w-full" disabled={Boolean(missing)} loading={send.isPending} onClick={onSend}>
+            📣 Obunachilarga yuborish
+          </Button>
+          {missing && <p className="mt-2 text-xs text-amber-800">{missing}</p>}
+        </>
+      )}
+    </Section>
+  )
+}
+
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default function ProductEditPage() {
@@ -599,6 +642,7 @@ export default function ProductEditPage() {
           <Photos product={p} />
           <Variants product={p} />
           <SizeChartEditor key={p.id + (p.variants.length ? 'v' : '')} product={p} />
+          <Announce product={p} />
           {p.is_active && (p.images.length === 0 || p.variants.length === 0) && (
             <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
               ⚠️ Mahsulot doʻkonda koʻrinmoqda, lekin {p.images.length === 0 ? 'rasmi' : 'varianti'} yoʻq — mijozlar uni sotib ololmaydi.

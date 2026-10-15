@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Query
 
-from api import notify
+from api import actions, notify
 from api.auth import Admin
 from api.catalog import LOW_STOCK
 from api.constants import ORDER_STATUSES
@@ -102,14 +102,8 @@ async def review_payment(
 ) -> dict:
     if not body.approve and not body.reason.strip():
         raise validation("Reason is required when rejecting a payment")
-    result = await rpc("review_payment", {
-        "p_payment_id": str(payment_id),
-        "p_admin_id": admin["id"],
-        "p_approve": body.approve,
-        "p_reason": body.reason or None,
-    })
-    order = await load_order(result["id"], admin=True)
-    await _notify_customer(background, order, "confirmed" if body.approve else "payment_rejected", body.reason)
+    order = await actions.review_payment(str(payment_id), admin, body.approve, body.reason)
+    background.add_task(actions.notify_review, order, body.approve, body.reason)
     return await shape_order(order, admin=True)
 
 

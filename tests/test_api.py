@@ -1,7 +1,8 @@
 """
 End-to-end walk through the shop: roles → catalogue → cart → order → payment
 → review → delivery, plus expiry, cancellation and access rules.
-Tests run in file order and share state through S.
+Tests run in file order and share state through S. This file expects an
+empty database, so it must sort first (pytest runs files alphabetically).
 """
 import io
 
@@ -236,7 +237,7 @@ def test_create_order(ali, fakes):
     assert {m["chat_id"] for m in new} == {-100500, OWNER, ALI}
     group = next(m for m in new if m["chat_id"] == -100500)
     assert f"#{o['number']}" in group["text"] and "423 000" in group["text"]
-    assert group["button"][2] == f"admin_order_{o['id']}"
+    assert f"startapp=admin_order_{o['id']}" in str(group["markup"])  # groups get a direct link
     assert "30 daqiqa" in next(m for m in new if m["chat_id"] == ALI)["text"]
 
 
@@ -265,7 +266,10 @@ def test_submit_payment(ali, vali, fakes):
     assert o["status"] == "payment_review" and o["payment"]["amount"] == 423000
     assert "receipt_url" not in o["payment"]
     assert len([k for k in fakes.files if k.startswith("receipts/")]) == 1
-    assert any("Chek keldi" in m["text"] for m in fakes.sent[before:] if m["chat_id"] == OWNER)
+    receipt_msg = next(m for m in fakes.sent[before:] if m["chat_id"] == OWNER and "Chek keldi" in m["text"])
+    assert receipt_msg["method"] == "sendPhoto" and receipt_msg["photo"].startswith("https://signed.test/receipts/")
+    buttons = [b["callback_data"] for row in receipt_msg["markup"]["inline_keyboard"] for b in row if "callback_data" in b]
+    assert buttons == [f"pay:ok:{o['payment']['id']}", f"pay:no:{o['payment']['id']}"]  # handled by the bot
 
     again = ali.post(url, files={"receipt": ("r.jpg", JPEG, "image/jpeg")})
     assert again.status_code == 409 and again.json()["code"] == "INVALID_TRANSITION"

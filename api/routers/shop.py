@@ -15,7 +15,7 @@ from api.db import db, first, rpc, run, run_count
 from api.errors import AppError, not_found
 from api.orders import load_order, shape_order
 from api.schemas import CreateOrderRequest, ProfileUpdate, QuoteRequest
-from api.storage import delete_receipt, upload_receipt
+from api.storage import delete_receipt, receipt_signed_url, upload_receipt
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["shop"])
@@ -283,7 +283,7 @@ async def submit_payment(
     data = await receipt.read(10 * 1024 * 1024 + 1)
     path = await upload_receipt(str(order_id), receipt.content_type or "", data)
     try:
-        await rpc("submit_payment", {
+        payment = await rpc("submit_payment", {
             "p_order_id": str(order_id),
             "p_customer_id": customer["id"],
             "p_card_id": str(card_id) if card_id else None,
@@ -294,7 +294,7 @@ async def submit_payment(
         raise
 
     order = await load_order(str(order_id))
-    background.add_task(notify.admin_new_payment, order)
+    background.add_task(notify.admin_new_payment, order, payment["id"], await receipt_signed_url(path))
     background.add_task(
         notify.customer_order_update, customer["telegram_id"], customer["language"], order, "payment_review",
     )

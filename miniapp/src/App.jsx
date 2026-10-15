@@ -52,11 +52,12 @@ function BackButtonController() {
   return null
 }
 
-// Notification buttons open the app with ?startapp=order_<id>.
+// Notification buttons open the app with ?startapp=order_<id>,
+// admin_order_<id> or product_<id> (new-product announcements).
 function startRoute() {
-  const m = /^(admin_)?order_([0-9a-f-]{36})$/.exec(startParam)
+  const m = /^(admin_order|order|product)_([0-9a-f-]{36})$/.exec(startParam)
   if (!m) return null
-  return m[1] ? `/admin/orders/${m[2]}` : `/orders/${m[2]}`
+  return { admin_order: '/admin/orders/', order: '/orders/', product: '/product/' }[m[1]] + m[2]
 }
 
 function PageFallback() {

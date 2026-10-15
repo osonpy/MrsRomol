@@ -76,6 +76,7 @@ create table products (
   cost_price       bigint check (cost_price >= 0),       -- admin only
   size_chart       jsonb,
   is_active        boolean not null default true,
+  announced_at     timestamptz,                          -- sent to subscribers (once)
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );

@@ -5,6 +5,45 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 5-bosqich — Bot (2026-10-15)
+
+### Chekni botning o'zida tasdiqlash
+- Chek kelganda admin chatlariga (`ADMIN_NOTIFY_IDS`) **chek rasmi** keladi. Uning ostida **✅ Tasdiqlash / ❌ Rad etish** va **📋 Batafsil** tugmalari bo'ladi.
+- **❌ Rad etish** bosilsa, tayyor sabablar chiqadi: "Chek o'qilmaydi", "Summa mos emas", "Pul kelib tushmadi", "Boshqa buyurtmaning cheki", va "↩️ Orqaga" tugmasi.
+- Tugma bosilganda Mini App'dagi admin bo'limi bilan **aynan bir xil amal** bajariladi (`api/actions.py`): buyurtma holati o'zgaradi, rad etilsa qoldiq qaytadi, mijozga xabar boradi.
+- Xabar yangilanadi: "✅ Tasdiqlandi — *admin ismi*". Tugmalar olib tashlanadi, "Batafsil" qoladi.
+- **Faqat admin bosa oladi.** Boshqa odam bossa "faqat adminlar uchun" javobi chiqadi va hech narsa o'zgarmaydi.
+- Bir chek bir nechta chatga borgan bo'lsa yoki allaqachon Mini App'da hal qilingan bo'lsa, ikkinchi bosish "allaqachon ko'rib chiqilgan" deb javob beradi.
+- Chek HEIC formatida bo'lsa (Telegram uni rasm sifatida ko'rsata olmaydi), xabar matn ko'rinishida tugmalar bilan keladi.
+
+### Yangi mahsulot e'loni
+- Admin mahsulot sahifasida **"📣 Obunachilarga yuborish"** tugmasi bor. Mahsulot do'konda ko'rinayotgan, rasmi va qoldig'i bor bo'lsagina ishlaydi.
+- Xabar "Yangi mahsulotlar haqida xabar" yoqilgan mijozlarga ularning tilida, rasm, narx va **"👀 Ko'rish"** tugmasi bilan boradi. Tugma mahsulot sahifasini to'g'ridan-to'g'ri ochadi (`startapp=product_…`).
+- Har bir mahsulot **faqat bir marta** e'lon qilinadi (`products.announced_at`, migratsiya 003). Tugmani ikki marta bosish ikki marta yubormaydi.
+- Xabarlar soniyasiga ~20 tadan yuboriladi (Telegram limiti 30). Botni bloklagan mijozlar obunadan avtomatik chiqariladi.
+
+### Bot tartibga keltirildi
+- **Topilgan xato:** tushunmagan xabarga bot eski "Katalog / Buyurtmalarim / Til" tugmalarini ko'rsatardi, ular esa hech narsa qilmasdi. Endi har qanday xabarga salomlashuv va **"🛍 Do'konni ochish"** tugmasi bilan javob beradi. Admin guruhida jim turadi.
+- Chap pastdagi **menyu tugmasi** ("Do'kon") Mini App'ni ochadi. Buyruqlar ro'yxati o'zbek va rus tilida.
+- Eski kod (`bot/database.py`, `keyboards/`, `messages/`, ingliz tili) olib tashlandi. Bot API'ning baza va xabar modullaridan foydalanadi, shuning uchun mantiq takrorlanmaydi.
+- Admin xabarlarida yetkazish usuli va viloyat kod emas, nom bilan yoziladi ("Taksi · Toshkent shahri").
+
+### Testlar
+- API va bot: **33/33**. Yangilari:
+  - Bot tugmalari (7 holat): begona bosishi, sabablar va orqaga qaytish, tasdiqlash, ikkinchi bosish, sabab bilan rad etish, noto'g'ri tugma.
+  - Salomlashuv: shaxsiy chat va guruh, ism ekranlanishi.
+  - E'lon: yashirin, rassiz va qoldig'i yo'q mahsulot rad etiladi; faqat obunachilarga boradi; tili to'g'ri; bloklaganlar obunadan chiqadi; ikkinchi marta yuborish rad etiladi; mijoz e'lon qila olmaydi.
+- Testlar endi soxta Telegram'ni bitta `tg()` funksiyasi darajasida ushlaydi. Matn, rasm va tugmalarning hammasi tekshiriladi.
+- Brauzer: xaridor 17/17, admin 21/21 qadam (e'lon va mahsulotga to'g'ridan-to'g'ri havola qo'shildi). Baza 47/47.
+
+### Tekshirilmagan
+- Botning haqiqiy Telegram bilan ishlashi (tugmalar, rasm, xabarni tahrirlash) men tomondan sinab bo'lmadi, chunki menda Telegram yo'q. Bot kodi soxta Telegram obyektlari bilan sinaldi. `bash test_telegram.sh` orqali haqiqiy botda bir marta sinab ko'rish kerak.
+
+### Egasi qilishi kerak
+- Supabase → SQL Editor → `db/migrations/003_product_announced_at.sql` → Run.
+
+---
+
 ## 4-bosqich — Admin bo'limi (2026-10-14 … 15)
 
 Admin bo'limi Mini App ichida joylashgan: **Profil → Admin panel** (faqat `admin` va `super_admin` uchun ochiladi). Bildirishnomadagi "Ochish" tugmasi to'g'ridan-to'g'ri kerakli buyurtmani ochadi. Admin ekranlari hozircha **faqat o'zbekcha**: admin o'zi uchun do'konni ruscha qilib qo'ygan bo'lsa ham, admin bo'limi o'zbekcha qoladi.
