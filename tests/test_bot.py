@@ -136,3 +136,41 @@ def test_greeting_offers_the_shop_only_in_private_chats(client):
     client.portal.call(greet, message("supergroup", "uz"))
     assert len(replies) == 2  # silent in the admin group
     assert len(removed) == len(deleted) == 2  # old reply keyboard removed, helper message deleted
+
+
+def test_bot_profile_is_synced_only_when_it_differs():
+    import asyncio
+
+    from main import sync_profile
+    from bot.texts import BOT_NAME, DESCRIPTION, SHORT_DESCRIPTION
+
+    class FakeBot:
+        def __init__(self):
+            self.store, self.sets = {}, []
+
+        def _get(self, kind, field):
+            async def get(language_code=None):
+                return NS(**{field: self.store.get((kind, language_code), "")})
+            return get
+
+        def _set(self, kind, field):
+            async def set_(language_code=None, **kw):
+                self.sets.append((kind, language_code))
+                self.store[(kind, language_code)] = kw[field]
+            return set_
+
+        def __getattr__(self, attr):
+            kind = attr.split("_my_")[1]
+            field = "name" if kind == "name" else kind
+            return self._get(kind, field) if attr.startswith("get") else self._set(kind, field)
+
+    bot = FakeBot()
+    asyncio.run(sync_profile(bot))
+    assert len(bot.sets) == 6  # name, short and full description × default (uz) and ru
+    assert bot.store[("name", None)] == BOT_NAME
+    assert bot.store[("short_description", "ru")] == SHORT_DESCRIPTION["ru"]
+    assert bot.store[("description", None)] == DESCRIPTION["uz"]
+    assert all(len(t) <= 120 for t in SHORT_DESCRIPTION.values()) and all(len(t) <= 512 for t in DESCRIPTION.values())
+
+    asyncio.run(sync_profile(bot))
+    assert len(bot.sets) == 6  # nothing changed → nothing sent (Telegram rate-limits these)

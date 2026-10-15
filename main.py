@@ -17,7 +17,7 @@ from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from api import db
 from bot.config import BOT_TOKEN, MINI_APP_URL
 from bot.handlers import payments, start
-from bot.texts import MENU_BUTTON
+from bot.texts import BOT_NAME, DESCRIPTION, MENU_BUTTON, SHORT_DESCRIPTION
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +38,25 @@ async def setup_bot(bot: Bot) -> None:
             logger.warning("MINI_APP_URL is not HTTPS (%s): menu button not set", MINI_APP_URL)
     except Exception as e:  # cosmetic: never stop the bot for this
         logger.warning("Bot setup failed: %s", e)
+    await sync_profile(bot)
+
+
+async def sync_profile(bot: Bot) -> None:
+    """
+    Name and descriptions from bot/texts.py. Telegram rate-limits these calls
+    hard, so only send what differs from what is already set.
+    """
+    for lang in ("uz", "ru"):
+        code = None if lang == "uz" else lang  # uz = default for all languages
+        try:
+            if (await bot.get_my_name(language_code=code)).name != BOT_NAME:
+                await bot.set_my_name(name=BOT_NAME, language_code=code)
+            if (await bot.get_my_short_description(language_code=code)).short_description != SHORT_DESCRIPTION[lang]:
+                await bot.set_my_short_description(short_description=SHORT_DESCRIPTION[lang], language_code=code)
+            if (await bot.get_my_description(language_code=code)).description != DESCRIPTION[lang]:
+                await bot.set_my_description(description=DESCRIPTION[lang], language_code=code)
+        except Exception as e:  # cosmetic: never stop the bot for this
+            logger.warning("Bot profile (%s) not updated: %s", lang, e)
 
 
 async def main() -> None:

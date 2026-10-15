@@ -5,6 +5,17 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 6.2 — Bot profili (2026-10-15)
+
+- Botning **nomi**, **qisqa tavsifi** (profil va ulashish) va **to'liq tavsifi** (Start'dan oldingi bo'sh chat) o'zbek va rus tilida `bot/texts.py` da saqlanadi. Bot har ishga tushganda ularni Telegram'ga o'zi o'rnatadi. O'zbekcha matn standart hisoblanadi, chunki Telegram'da o'zbek interfeysi yo'q va ko'pchilik ingliz yoki rus interfeysidan foydalanadi. Faqat o'zgargan matn yuboriladi, chunki Telegram bu so'rovlarni qattiq cheklaydi.
+- Nomi: **Mrs Romol**. Qisqa tavsif: "Ro'mollar, abaya va liboslar hamda ularga mos kiyimlar. Telegram ichida qulay do'kon 🌸". To'liq tavsifda buyurtma berish 3 qadamda tushuntirilgan: tanlash → karta orqali to'lash va chek yuborish → taksi, pochta yoki BTS orqali qabul qilish.
+- BotFather uchun rasmlar `docs/bot-profile/` papkasida:
+  - `profile.png`: brend rangidagi fonda oq atirgul, 640×640;
+  - `description.png`: krem fonda to'liq logo, 640×360.
+- Test: profil faqat farq qilganda yangilanadi va matn uzunligi Telegram chegarasidan oshmaydi. API va bot testlari 34/34.
+
+---
+
 ## 6.1 — Mijoz uchun yetkazish ma'lumoti (2026-10-15)
 
 **Muammo:** admin "Yuborildi" bosganda yozgan taksi ma'lumoti faqat tarixga tushardi. Mijoz uni ko'rmasdi, xabarda ham yo'q edi. Yandex Go kuzatish havolasini mijozga yuborishning iloji yo'q edi.
