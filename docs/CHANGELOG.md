@@ -5,6 +5,32 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 6-bosqich — Serverga joylash (2026-10-15)
+
+Do'kon jonli: **https://app.mrsromol.uz** (Mini App) va **https://api.mrsromol.uz** (API).
+
+### Nima qilindi
+- **Server:** Contabo VPS (`161.97.107.145`). Do'kon 3 ta Docker konteynerda ishlaydi: `api`, `bot`, `caddy`. VPS'dagi boshqa botlarga tegilmadi, do'kon faqat 80 va 443 portlarni egallaydi.
+- **Domen:** `mrsromol.uz` Eskiz'dan olindi. DNS'ga 2 ta A-yozuv qo'shildi: `app` va `api` → `161.97.107.145`. Eskiz qo'ygan boshqa yozuvlar (`www`, `mail`, MX, SPF) o'zgartirilmadi. Asosiy domen kelajakdagi sayt va pochta uchun bo'sh qoldi.
+- **HTTPS:** Caddy **Let's Encrypt**'dan bepul sertifikatni avtomatik oldi (13.01.2027 gacha amal qiladi) va uni o'zi yangilab turadi. Pullik SSL kerak emas.
+- **Sozlamalar:** `.env` faqat serverda turadi (`chmod 600`), Git'da yo'q. `DEV_MODE=false`, `ALLOWED_ORIGINS` faqat `https://app.mrsromol.uz`.
+- **Baza:** Supabase'da 002 va 003 migratsiyalar bajarilgan.
+- `docs/DEPLOY.md` dagi papka yo'li haqiqiy yo'lga moslashtirildi (`~/apps/mrsromol_market_miniapp/mrsromol`). DNS'ni `dig` bilan tekshirish usuli qo'shildi.
+
+### Tekshirildi
+- `https://app.mrsromol.uz` → 200, sertifikat Let's Encrypt.
+- `https://api.mrsromol.uz/health` → `{"status":"ok"}`.
+- Telegram: `/start` salomlashuv va "Do'konni ochish" tugmasi bilan javob beradi, Mini App haqiqiy domendan ochiladi. Katalog bo'sh bo'lgani uchun "Tez orada" ko'rsatiladi, bu kutilgan holat.
+
+### Kuzatilgan
+- Yangi `.uz` domen Eskiz'da faol ko'rinsa ham, reyestr zonasiga bir necha soat ichida qo'shiladi. Shu vaqt ichida ba'zi DNS serverlar "domen yo'q" javobini ~4 soatgacha xotirasida saqlaydi. Bu o'z-o'zidan hal bo'ladi.
+
+### Qoldi
+- Haqiqiy botda chek oqimini sinash: buyurtma → chek → admin guruhida ✅/❌ tugmalari.
+- Haqiqiy mahsulotlarni qo'shish.
+
+---
+
 ## 5-bosqich — Bot (2026-10-15)
 
 ### Chekni botning o'zida tasdiqlash
