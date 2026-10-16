@@ -5,6 +5,27 @@ Reja: [SPEC.md](SPEC.md) → 9-bo'lim.
 
 ---
 
+## 6.3 — Fon musiqasi (2026-10-16)
+
+Mijoz o'zi yoqadigan sokin fon musiqasi qo'shildi. Uning vazifasi brendga yoqimli taassurot berish.
+
+- **Tugma:** katalog sahifasida, logoning o'ng tomonida 🎵. Musiqa chalayotganda tugma brend rangiga kiradi va ichida "ekvalayzer" ustunchalari harakatlanadi.
+- **Standart holatda o'chiq.** Birinchi kirishda tugma atrofida mayin to'lqin va bir martalik "Musiqa bilan xarid qiling" taklifi chiqadi. Taklif 6 soniyada yo'qoladi.
+- **Treklar:** egasi Pixabay'dan tanlagan 3 ta oud treki (Golden Sand, Alhambra, Arabesque). Ular navbat bilan, aylanib chalinadi va har kirishda boshqa trekdan boshlanadi.
+- **Mayinlik:** yoqilganda ovoz 2.5 soniyada asta-sekin ko'tariladi, o'chirilganda asta pasayadi. Ovoz past darajada (35%). Uchala trekning ovoz balandligi bir xil darajaga keltirildi.
+- **Hurmat:**
+  - mijozning tanlovi eslab qolinadi;
+  - brauzerlar ovozni faqat teginishdan keyin ruxsat beradi, shuning uchun "yoqiq" tanlangan bo'lsa, musiqa mijozning birinchi teginishida boshlanadi;
+  - Telegram yig'ilganda yoki ilova yashirilganda musiqa to'xtaydi va qaytganda davom etadi;
+  - boshqa sahifalarga o'tganda musiqa uzilmaydi.
+- **Yengil:** treklar AAC 96 kbit/s formatiga siqildi (21 MB → 7.7 MB jami). Ular faqat tugma bosilgandan keyin yuklanadi, katalog sekinlashmaydi. Caddy ularni brauzerda bir hafta keshlaydi.
+- **iOS:** iPhone'da `audio.volume` ishlamaydi, shuning uchun ovoz balandligi va fade Web Audio API orqali boshqariladi.
+- Asl mp3 fayllar (`music/`) Git'ga kiritilmaydi, siqilgan nusxalari `miniapp/public/music/` da.
+- Brauzerda tekshirildi: tugma bosilmaguncha fayl yuklanmaydi; yoqish va o'chirish ishlaydi; qayta ochilganda tanlov saqlanadi va birinchi teginishda musiqa boshlanadi. Xaridor va admin yurishlari xatosiz o'tdi.
+- **Tekshirilmagan:** haqiqiy telefonda (iPhone va Android Telegram) ovoz eshitilishi. Buni egasi sinab ko'rishi kerak.
+
+---
+
 ## 6.2 — Bot profili (2026-10-15)
 
 - Botning **nomi**, **qisqa tavsifi** (profil va ulashish) va **to'liq tavsifi** (Start'dan oldingi bo'sh chat) o'zbek va rus tilida `bot/texts.py` da saqlanadi. Bot har ishga tushganda ularni Telegram'ga o'zi o'rnatadi. O'zbekcha matn standart hisoblanadi, chunki Telegram'da o'zbek interfeysi yo'q va ko'pchilik ingliz yoki rus interfeysidan foydalanadi. Faqat o'zgargan matn yuboriladi, chunki Telegram bu so'rovlarni qattiq cheklaydi.

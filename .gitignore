@@ -14,3 +14,6 @@ e2e/node_modules/
 # Any env file with secrets (keep only the example in git)
 .env.*
 !.env.example
+
+# Original music downloads (compressed copies live in miniapp/public/music)
+/music/

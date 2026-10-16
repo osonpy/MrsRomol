@@ -8,6 +8,7 @@ import { useMeta, useProducts } from '../hooks/queries'
 import { pick } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { BagIcon } from '../components/icons'
+import MusicToggle from '../components/MusicToggle'
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']
 const SORTS = ['new', 'price_asc', 'price_desc']
@@ -170,8 +171,9 @@ export default function CatalogPage() {
   return (
     <div>
       <header className="sticky top-0 z-20 bg-cream/95 pb-3 backdrop-blur">
-        <div className="flex justify-center pt-3">
+        <div className="relative flex justify-center pt-3">
           <img src="/logo.webp" alt="Mrs Romol" className="h-14 w-auto" />
+          <MusicToggle className="absolute right-4 top-5 z-30" />
         </div>
         <div className="mt-2 flex items-center gap-2 px-4">
           <SearchBox value={filters.q} onChange={onSearch} />

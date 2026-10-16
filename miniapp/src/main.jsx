@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import './i18n'
 import { initTelegram } from './lib/telegram'
+import { initMusic } from './lib/music'
 import App from './App'
 
 initTelegram()
+initMusic()
 
 const queryClient = new QueryClient({
   defaultOptions: {

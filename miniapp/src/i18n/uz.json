@@ -19,6 +19,11 @@
     "orders": "Buyurtmalar",
     "profile": "Profil"
   },
+  "music": {
+    "on": "Musiqani yoqish",
+    "off": "Musiqani oʻchirish",
+    "hint": "Musiqa bilan xarid qiling"
+  },
   "catalog": {
     "search": "Roʻmol, libos qidirish…",
     "all": "Hammasi",
